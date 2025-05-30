@@ -6,6 +6,7 @@ import { Button, Slider, Toggle } from "@react-three/uikit-default";
 import { Play, Pause, Gauge, Snail, Rabbit, Infinity } from '@react-three/uikit-lucide';
 import { TimeConductor } from "musicaljuggling";
 import { Root, Container, Text } from "@react-three/uikit";
+import { SimpleSlider } from "./SimpleSlider";
 
 //TODO : Handle loading state ?
 //TODO : Bounds in UI or in COnductor ?
@@ -86,7 +87,11 @@ export function TimeControls({ timeConductor, backgroundColor }: { timeConductor
         );
         removeEventListeners.push(
             timeConductor.addEventListener("timeUpdate", () => {
-                setTime(timeConductor.getTime());
+                // const newTime = timeConductor.getTime();
+                // if(newTime%5 < 0.5){
+                //     setTime(newTime);
+                //     console.log("timeset");
+                // }
             })
         );
         removeEventListeners.push(
@@ -107,6 +112,7 @@ export function TimeControls({ timeConductor, backgroundColor }: { timeConductor
                 setLoop(timeConductor.getLoop());
             })
         );
+
         // Return a function to remove all event listeners.
         return () => {
             removeEventListeners.forEach((callback) => {
@@ -183,46 +189,53 @@ export function TimeControls({ timeConductor, backgroundColor }: { timeConductor
 
     return (
         <group position={[0, 1, -2]}>
-            <Root gap={32} alignItems={'center'}>  
-                <Container
-                    alignItems="center" 
-                    gap={12}
-                    padding={10}
-                    borderRadius={8}
-                    backgroundColor={backgroundColor}
-                >
-                    <Toggle borderColor={'black'} borderWidth={1.5} checked={loop} onCheckedChange={(checked) => onLoopToggle(checked)}>
-                        <Infinity width={16} height={16}/>
-                    </Toggle>
-                </Container>
-                <Container 
-                    flexDirection="row" 
-                    alignItems="center" 
-                    gap={20}
-                    padding={10}
-                    paddingRight={20}
-                    borderRadius={8}
-                    backgroundColor={backgroundColor}
-                >
-                    <Button variant="outline" backgroundColor='white' borderColor="black" borderWidth={1.5} onClick={onButtonClick}>
-                        <Play width={16} height={16} display={status !== 'playing' ? "flex" : "none"}/>
-                        <Pause width={16} height={16} display={status === 'playing'? "flex" : "none"}/>
-                    </Button>
-                    <Slider value={time} defaultValue={bounds[0]} max={bounds[1]} step={1} width={300} onValueChange={onSliderChange}/>
-                    <Text fontWeight={'bold'} color={'white'}>{`${formatTime(time)} / ${formatTime(bounds[1])}`}</Text>
-                </Container>
-                <Container alignItems='center' backgroundColor={backgroundColor} gap={12} padding={10} borderRadius={8}>
-                    <Toggle borderColor={'black'} borderWidth={1.5} checked={speedSliderActive} onCheckedChange={() => setSpeedSliderActive(!speedSliderActive)}>
-                        <Gauge width={16} height={16}/>
-                    </Toggle>
-                    <Container display={speedSliderActive ? 'flex' : 'none'} alignItems={'center'} gap={12}>
-                        <Text width={50} fontWeight={'bold'} color={'white'}>x {playbackRate.toFixed(2)}</Text>
-                        <Snail color="white" width={18} height={18}/>
-                        <Slider defaultValue={1}  min={0.25} max={3} step={0.25} width={150} onValueChange={onSpeedSliderChange}/>
-                        <Rabbit color="white" width={18} height={18}/>
+            <group position={[-3, 0, 0]}>
+                <Root gap={32} alignItems={'center'}>  
+                    <Container
+                        alignItems="center" 
+                        gap={12}
+                        borderRadius={8}
+                    >
+                        <Toggle borderColor={'black'} borderWidth={1.5} checked={loop} onCheckedChange={(checked) => onLoopToggle(checked)}>
+                            <Infinity width={16} height={16}/>
+                        </Toggle>
                     </Container>
-                </Container>
-            </Root>
+                    <Container 
+                        flexDirection="row" 
+                        alignItems="center" 
+                        gap={20}
+                        borderRadius={8}
+                    >
+                        <Button variant="outline" backgroundColor='white' borderColor="black" borderWidth={1.5} onClick={onButtonClick}>
+                            <Play width={16} height={16} display={status !== 'playing' ? "flex" : "none"}/>
+                            <Pause width={16} height={16} display={status === 'playing'? "flex" : "none"}/>
+                        </Button>
+                        {/* <Slider value={time} defaultValue={bounds[0]} max={bounds[1]} step={1} width={300} onValueChange={onSliderChange}/>
+                        <Text fontWeight={'bold'} color={'white'}>{`${formatTime(time)} / ${formatTime(bounds[1])}`}</Text> */}
+                    </Container>
+                </Root>
+            </group>
+            <SimpleSlider
+                clock={timeConductor}
+                width={4}          
+                position={[0, 0, 0]}
+                trackColor="#141414"
+            />
+            <group position={[(speedSliderActive ? 4 : 2.6), 0, 0]}>
+                <Root>
+                    <Container alignItems='center' gap={12} borderRadius={8}>
+                        <Toggle borderColor={'black'} borderWidth={1.5} checked={speedSliderActive} onCheckedChange={() => setSpeedSliderActive(!speedSliderActive)}>
+                            <Gauge width={16} height={16}/>
+                        </Toggle>
+                        <Container display={speedSliderActive ? 'flex' : 'none'} alignItems={'center'} gap={12}>
+                            <Text width={50} fontWeight={'bold'} color={'white'}>x {playbackRate.toFixed(2)}</Text>
+                            <Snail color="white" width={18} height={18}/>
+                            <Slider defaultValue={1}  min={0.25} max={3} step={0.25} width={150} onValueChange={onSpeedSliderChange}/>
+                            <Rabbit color="white" width={18} height={18}/>
+                        </Container>
+                    </Container>
+                </Root>
+            </group>
         </group>
     )
 }

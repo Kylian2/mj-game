@@ -63,7 +63,6 @@ export function MovePlayer({ xrOrigin = null }: MovePlayerProps): ReactNode {
         xrOrigin.current.position.x += moveDirection.x * speed;
         xrOrigin.current.position.z += moveDirection.z * speed;
 
-        console.log(controller);
     });
 
     return

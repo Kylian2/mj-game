@@ -74,7 +74,7 @@ export default function App() {
 					<spotLight position={[5, 5, 5]} angle={90} penumbra={1} decay={0} intensity={Math.PI} />
 					<pointLight position={[10, 10, 10]} />
 					<Ground position={[0, 0, 0]}/>
-          			<OrbitControls />
+          <OrbitControls />
 					<XROrigin ref={xrOrigin}/>
 
 					<TimeControls timeConductor={clock} backgroundColor="#94B9AF"/>
@@ -83,7 +83,6 @@ export default function App() {
 					<FlyPlayer xrOrigin={xrOrigin}/>
 					<RotatePlayer/>
 
-					<Sliider/>
 				</XR>
 			</Canvas>
 		</div>
