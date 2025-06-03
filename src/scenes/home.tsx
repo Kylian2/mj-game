@@ -2,7 +2,7 @@ import { Container, Root, Image, Text } from "@react-three/uikit"
 import { Button } from "@react-three/uikit-default"
 import { DoubleSide, Euler, Object3D, RepeatWrapping, SphereGeometry, SpotLight, Vector3 } from "three"
 import { useTexture } from '@react-three/drei';
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, type Dispatch, type SetStateAction } from "react";
 import { useFrame } from "@react-three/fiber";
 import { randInt } from "three/src/math/MathUtils.js";
 import { max } from "three/tsl";
@@ -50,21 +50,20 @@ function PosterSpotLight({ targetPosition }: { targetPosition: [number, number, 
     );
 }
 
-function Poster({title, image, position, rotation} :{title?:String, image?:string, position: Vector3, rotation: Euler}){
-    return (
+function Poster({title, image, position, rotation, scene, setScene} :{title?:String, image?:string, position: Vector3, rotation: Euler, scene?:string, setScene?: Dispatch<SetStateAction<string>>}){    return (
         <group position={position} rotation={rotation}>
             <Root flexDirection={'column'} gap={12}>
                 <Container backgroundColor={'black'} padding={12}>
                     <Image height={200} src={image}></Image>
                 </Container>
                 <Text color={'white'} textAlign={'center'}>{title}</Text>
-                <Button marginTop={12} backgroundColor={'white'}><Text color={'black'}>Jouer</Text></Button>
+                <Button marginTop={12} backgroundColor={'white'}><Text color={'black'} onClick={()=> {if(scene && setScene){ setScene(scene) }}}>Jouer</Text></Button>
             </Root>
         </group>
     )
 }
 
-function Posters({posters}: {posters : Array<{title: string, src: string}>}){
+function Posters({posters, setScene}: {posters : Array<{title: string, src: string, scene?:string}>, setScene: Dispatch<SetStateAction<string>>}){
     const posterCount: number = posters.length;
     const radius = 12;
     return(
@@ -83,8 +82,10 @@ function Posters({posters}: {posters : Array<{title: string, src: string}>}){
                         <Poster
                             title={poster.title}
                             image={poster.src}
+                            scene={poster.scene}
                             position={new Vector3(x, 0, z)}
                             rotation={new Euler(0, rotationY, 0)}
+                            setScene={setScene}
                         />
                     </group>
                 );
@@ -234,18 +235,19 @@ function BallStack(props: any){
     )
 }
 
-export function HomeScene(){
+export function HomeScene({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const posters = [
-        { title: "Danube Bleu", src:"posters/danubebleu.jpg" },
+        { title: "Danube Bleu", src:"posters/danubebleu.jpg", scene:"danubebleu" },
         { title: "Au clair de la lune", src:"posters/auclairdelalune.jpg" },
         { title: "Pachelbel", src:"posters/pachelbel.jpg" },
     ];
+    const [currentScene, setScene] = scene;    
     return(
         <group>
             <ambientLight intensity={2} />
             <pointLight position={[10, 10, 10]} />
             <Ground position={[0, 0, 0]}/>
-            <Posters posters={posters}></Posters>
+            <Posters posters={posters} setScene={setScene}/>
             <Carpet/>
             <WallAndRoof/>
             <DiscoSpotlight 
