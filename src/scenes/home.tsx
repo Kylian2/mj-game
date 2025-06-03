@@ -57,7 +57,7 @@ function Poster({title, image, position, rotation} :{title?:String, image?:strin
                 <Container backgroundColor={'black'} padding={12}>
                     <Image height={200} src={image}></Image>
                 </Container>
-                <Text textAlign={'center'}>{title}</Text>
+                <Text color={'white'} textAlign={'center'}>{title}</Text>
                 <Button marginTop={12} backgroundColor={'white'}><Text color={'black'}>Jouer</Text></Button>
             </Root>
         </group>
