@@ -1,9 +1,11 @@
 import { Container, Root, Image, Text } from "@react-three/uikit"
 import { Button } from "@react-three/uikit-default"
-import { DoubleSide, Euler, Object3D, RepeatWrapping, SpotLight, Vector3 } from "three"
+import { DoubleSide, Euler, Object3D, RepeatWrapping, SphereGeometry, SpotLight, Vector3 } from "three"
 import { useTexture } from '@react-three/drei';
 import { useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
+import { randInt } from "three/src/math/MathUtils.js";
+import { max } from "three/tsl";
 
 function Ground(props: any) {
     const texture = useTexture('/plywood.jpg');
@@ -48,12 +50,12 @@ function PosterSpotLight({ targetPosition }: { targetPosition: [number, number, 
     );
 }
 
-function Poster({title, image, position, rotation} :{title?:String, image?:String, position: Vector3, rotation: Euler}){
+function Poster({title, image, position, rotation} :{title?:String, image?:string, position: Vector3, rotation: Euler}){
     return (
         <group position={position} rotation={rotation}>
             <Root flexDirection={'column'} gap={12}>
                 <Container backgroundColor={'black'} padding={12}>
-                    <Image height={200} src={'https://cdn11.bigcommerce.com/s-ydriczk/images/stencil/1500x1500/products/89058/93685/Joker-2019-Final-Style-steps-Poster-buy-original-movie-posters-at-starstills__62518.1669120603.jpg?c=2'}></Image>
+                    <Image height={200} src={image}></Image>
                 </Container>
                 <Text textAlign={'center'}>{title}</Text>
                 <Button marginTop={12} backgroundColor={'white'}><Text color={'black'}>Jouer</Text></Button>
@@ -62,13 +64,13 @@ function Poster({title, image, position, rotation} :{title?:String, image?:Strin
     )
 }
 
-function Posters({posters}: {posters : Array<{title: string}>}){
+function Posters({posters}: {posters : Array<{title: string, src: string}>}){
     const posterCount: number = posters.length;
     const radius = 12;
     return(
         <group position={[0, 2, 0]}>
             {posters.map((poster, index) => {
-                const angle = (index / posterCount) * Math.PI * 2;
+                const angle = (index / Math.max(posterCount, 8)) * Math.PI * 2;
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
                 const rotationY = -Math.PI/2 - angle;
@@ -80,12 +82,13 @@ function Posters({posters}: {posters : Array<{title: string}>}){
                         />
                         <Poster
                             title={poster.title}
+                            image={poster.src}
                             position={new Vector3(x, 0, z)}
                             rotation={new Euler(0, rotationY, 0)}
                         />
                     </group>
                 );
-        })}
+            })}
     </group>
     )
 }
@@ -196,16 +199,46 @@ function SpotlightObject(props: any) {
     );
 }
 
+function BallStack(props: any){
+    const nbBalls = randInt(3, 8);
+    const grid = [3,3,3];
+    const colors = [
+        "#FF5733","#33C1FF","#FF33A1","#75FF33",
+        "#FFC300","#9D33FF","#33FFBD","#FF3333","#33FF57",
+        "#3375FF", "#FF9A33", "#FF33EC", "#33FFEC","#A6FF33","#FF6F61"
+    ]
+    let balls: Array<{x:number, z:number, color:string}> = [];
+    for(let i = 0; i<nbBalls; i++){
+        const col = i % grid[0];
+        const row = Math.floor(i / grid[0]);
+
+        let ball = {
+            x: (col - (grid[0] - 1) / 2) * 0.4,
+            z: (row - (grid[1] - 1) / 2) * 0.4,
+            color: colors[randInt(0, colors.length)]
+        };
+        balls.push(ball);
+    }
+
+    return (
+        <group {...props}>
+            {balls.map((ball) => {                   
+                return (
+                    <mesh position={[ball.x, 0.12, ball.z]} rotation={[0, 0, 0]}>
+                        <sphereGeometry args={[0.2, 32, 16]} />
+                        <meshStandardMaterial color={ball.color} side={DoubleSide} roughness={0.4}/>
+                    </mesh>
+                );
+            })}
+        </group>
+    )
+}
+
 export function HomeScene(){
     const posters = [
-        { title: "JOKER" },
-        { title: "BATMAN" },
-        { title: "SPIDER-MAN" },
-        { title: "AVATAR" },
-        { title: "MATRIX" },
-        { title: "INCEPTION" },
-        { title: "DUNE" },
-        { title: "BLADE RUNNER" }
+        { title: "Danube Bleu", src:"posters/danubebleu.jpg" },
+        { title: "Au clair de la lune", src:"posters/auclairdelalune.jpg" },
+        { title: "Pachelbel", src:"posters/pachelbel.jpg" },
     ];
     return(
         <group>
@@ -242,6 +275,17 @@ export function HomeScene(){
             <SpotlightObject position={new Vector3(Math.cos(0)*4, 6, Math.sin(0)*4)} rotation={new Euler(0, Math.PI/2, Math.PI/7)} />
             <SpotlightObject position={new Vector3(Math.cos(2*Math.PI/3)*4, 6, Math.sin(2*Math.PI/3)*4)} rotation={new Euler(0, Math.PI/4, -Math.PI/5)} />
             <SpotlightObject position={new Vector3(Math.cos(4*Math.PI/3)*4, 6, Math.sin(4*Math.PI/3)*4)} rotation={new Euler(0, Math.PI, Math.PI/3)} />
+            <mesh position={[0, 7.5, 0]} rotation={[Math.PI/2, 0, 0]}>
+                <torusGeometry args={[3.6, 0.2, 16, 10]} />
+                <meshStandardMaterial color={'#444444'} side={DoubleSide}/>
+            </mesh>
+            <mesh position={[0, 7.5, 0]} rotation={[0, 0, 0]}>
+                <boxGeometry args={[30,0.2,0.2]} />
+                <meshStandardMaterial color={'#444444'} side={DoubleSide}/>
+            </mesh>
+            <BallStack position={[12, 0, 4]} rotation={([0, Math.PI/4, 0])}/>
+            <BallStack position={[-5, 0, 12]} rotation={([0, Math.PI/4, 0])}/>
+            <BallStack position={[-7, 0, -10]} rotation={([0, Math.PI/4, 0])}/>
         </group>
     )
 }
