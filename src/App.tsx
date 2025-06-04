@@ -1,91 +1,84 @@
 import { createXRStore, XROrigin } from "@react-three/xr";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { DoubleSide } from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { XR } from "@react-three/xr";
-import { PerspectiveCamera } from "@react-three/drei";
-import { OrbitControls } from "@react-three/drei";
-import { TimeControls } from "./ui/TimeControls";
-import './style/App.css'
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import "./style/App.css";
 import { TimeConductor } from "../../mj-lib/dist/MusicalJuggling";
 import { RotatePlayer } from "./xrControls/RotatePlayer";
 import { FlyPlayer } from "./xrControls/FlyPlayer";
 import { MovePlayer } from "./xrControls/MovePlayer";
-import { useRef, useState } from 'react'
-import { Slider } from "@react-three/uikit-default";
-import { Root } from "@react-three/uikit";
+import { useEffect, useRef, useState } from "react";
+import { HomeScene } from "./scenes/home";
+import { DanubeBleu } from "./scenes/danubebleu";
+import { WebGLRenderer } from "three";
 
 const store = createXRStore();
 
-function Ground(props: any) {
-	return (
-		<mesh {...props}
-			rotation={[Math.PI / 2, 0, 0]}>
-			<planeGeometry args={[100, 100]}/>
-			<meshStandardMaterial color={'green'} side={DoubleSide}/>
-		</mesh>
-	)
-}
+/**
+ * Handle position reset when changing scene
+ */
+function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.RefObject<any> }) {
+    const { gl } = useThree() as { gl: WebGLRenderer & { xr: any } };
+    const initialReferenceSpace = useRef<XRReferenceSpace | null>(null);
+    const isInitialized = useRef(false);
+    const lastScene = useRef(scene);
 
-function Sliider() {
+    // save initial reference space
+    useFrame(() => {
+        if (!isInitialized.current && gl.xr.isPresenting) {
+            const currentReferenceSpace = gl.xr.getReferenceSpace();
+            if (currentReferenceSpace) {
+                initialReferenceSpace.current = currentReferenceSpace;
+                isInitialized.current = true;
+            }
+        }
+    });
 
-  const [val, setVal] = useState<number>(50); 
-  const i = useRef(0);
+    useEffect(() => {
+        if (lastScene.current !== scene && isInitialized.current) {
+            if (initialReferenceSpace.current && gl.xr.isPresenting) {
+                try {
+                    gl.xr.setReferenceSpace(initialReferenceSpace.current);
+                } catch (e) {
+                    console.warn("Error during reference space change", e);
+                }
+            }
 
-  useFrame(() => {
-    i.current++;
-    if (i.current % 10 === 0) {
-      setVal(prevVal => {
-        const newVal = prevVal + 1;
-        return newVal > 300 ? 0 : newVal; 
-      });
-    }
-  });
+            if (xrOrigin.current) {
+                xrOrigin.current.position.set(0, 0, 0);
+            }
 
-  const safeVal = typeof val === 'number' && !isNaN(val) ? val : 50;
+            lastScene.current = scene;
+        }
+    }, [scene, gl, xrOrigin]);
 
-  return (
-    <group position={[5, 1, 0]}>
-      <Root>
-        {/* Ensure all numeric values are valid */}
-        <Slider 
-          value={safeVal} 
-          defaultValue={50} 
-          max={300} 
-          step={1} 
-          width={300}
-        />
-      </Root>
-    </group>
-  );
+    return null;
 }
 
 export default function App() {
+    const clock: TimeConductor = new TimeConductor({ bounds: [0, 20] });
+    const xrOrigin: any = useRef(null);
+    const [scene, setScene] = useState<string>("home");
 
-	const clock: TimeConductor = new TimeConductor({bounds: [0, 20]});
-	const xrOrigin: any = useRef(null);
+    return (
+        <div className="canvas-container">
+            <button onClick={() => store.enterVR()}>Enter VR</button>
+            <Canvas style={{ background: "skyblue" }}>
+                <XR store={store}>
+                    <PerspectiveCamera position={[0, 4, 10]} makeDefault />
+                    <XROrigin ref={xrOrigin} />
+                    <OrbitControls />
 
-	return (
-		<div className="canvas-container">
-      		<button onClick={() => store.enterVR()}>Enter VR</button>
-			<Canvas style={{background:'skyblue'}}>
-				<XR store={store}>
-					<PerspectiveCamera position={[0, 4, 10]} makeDefault />
-					<ambientLight intensity={0.5} />
-					<spotLight position={[5, 5, 5]} angle={90} penumbra={1} decay={0} intensity={Math.PI} />
-					<pointLight position={[10, 10, 10]} />
-					<Ground position={[0, 0, 0]}/>
-          <OrbitControls />
-					<XROrigin ref={xrOrigin}/>
+                    <XRSpaceManager scene={scene} xrOrigin={xrOrigin} />
 
-					<TimeControls timeConductor={clock} backgroundColor="#94B9AF"/>
+                    {scene === "home" && <HomeScene scene={[scene, setScene]} />}
+                    {scene === "danubebleu" && <DanubeBleu scene={[scene, setScene]} />}
 
-					<MovePlayer xrOrigin={xrOrigin}/>
-					<FlyPlayer xrOrigin={xrOrigin}/>
-					<RotatePlayer/>
-
-				</XR>
-			</Canvas>
-		</div>
-	)
-
+                    <MovePlayer xrOrigin={xrOrigin} />
+                    <FlyPlayer xrOrigin={xrOrigin} />
+                    <RotatePlayer />
+                </XR>
+            </Canvas>
+        </div>
+    );
 }
