@@ -1,22 +1,18 @@
 import React, { useRef, useMemo, type SetStateAction, type Dispatch } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls, Text, Box, Cylinder, Sphere, Plane, useTexture } from "@react-three/drei";
+import { OrbitControls, Box, Cylinder, Sphere, Plane, useTexture } from "@react-three/drei";
 import { DoubleSide, Mesh, RepeatWrapping } from "three";
 import { TimeConductor } from "musicaljuggling";
 import { TimeControls } from "../ui/TimeControls";
+import { Button } from "@react-three/uikit-default";
+import { Root, Text } from "@react-three/uikit";
 
 function Ground(props: any) {
-    const texture = useTexture('/grass.png');
-    
-    texture.wrapS = RepeatWrapping;
-    texture.wrapT = RepeatWrapping;
-    texture.repeat.set(10, 10);
-    
     return (
         <mesh {...props}
             rotation={[Math.PI / 2, 0, 0]}>
             <planeGeometry args={[300, 300]}/>
-            <meshStandardMaterial map={texture} side={DoubleSide}/>
+            <meshStandardMaterial color={'#7A9F4D'} side={DoubleSide}/>
         </mesh>
     )
 }
@@ -133,7 +129,8 @@ function WoodenSeat(props: any) {
 
 export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const stageRef = useRef<Mesh>(null);
-    const clock: TimeConductor = new TimeConductor({bounds:[0,20]})
+    const clock: TimeConductor = new TimeConductor({bounds:[0,20]});
+    const [currentScene, setScene] = scene;    
     return (
         <group>
             <Ground/>
@@ -181,6 +178,13 @@ export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<
 
             <ambientLight intensity={1} />
             <pointLight position={[10, 10, 10]} />
+            <group position={[0, 1, 0]}>
+                <Root>
+                    <Button onClick={() => setScene("home")}>
+                        <Text>Accueil</Text>
+                    </Button>
+                </Root>
+            </group>
         </group>
     );
 }

@@ -58,7 +58,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 export default function App() {
     const clock: TimeConductor = new TimeConductor({ bounds: [0, 20] });
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("danubebleu");
+    const [scene, setScene] = useState<string>("home");
 
     return (
         <div className="canvas-container">
