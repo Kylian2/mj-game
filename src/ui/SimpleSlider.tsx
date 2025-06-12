@@ -1,11 +1,11 @@
 import { useRef, useCallback, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { TimeConductor } from "musicaljuggling";
+import { Clock } from "musicaljuggling";
 import { useHover } from "@react-three/xr";
 import { Vector3, Mesh, Group, Plane } from "three";
 
 interface SimpleSliderProps {
-    clock: TimeConductor;
+    clock: Clock;
     width?: number;
     position?: [number, number, number];
     trackColor?: string;

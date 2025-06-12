@@ -3,7 +3,6 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { XR } from "@react-three/xr";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import "./style/App.css";
-import { TimeConductor } from "../../mj-lib/dist/MusicalJuggling";
 import { RotatePlayer } from "./xrControls/RotatePlayer";
 import { FlyPlayer } from "./xrControls/FlyPlayer";
 import { MovePlayer } from "./xrControls/MovePlayer";
@@ -11,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { HomeScene } from "./scenes/home";
 import { DanubeBleu } from "./scenes/danubebleu";
 import { WebGLRenderer } from "three";
+import { DanubeBleuFigure } from "./figures/danubebleu";
 
 const store = createXRStore();
 
@@ -56,9 +56,8 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 }
 
 export default function App() {
-    const clock: TimeConductor = new TimeConductor({ bounds: [0, 20] });
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("home");
+    const [scene, setScene] = useState<string>("danubebleu");
 
     return (
         <div className="canvas-container">

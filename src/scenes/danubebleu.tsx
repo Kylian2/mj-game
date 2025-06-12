@@ -1,11 +1,12 @@
-import React, { useRef, useMemo, type SetStateAction, type Dispatch } from "react";
+import { useRef, useMemo, type SetStateAction, type Dispatch } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { OrbitControls, Box, Cylinder, Sphere, Plane, useTexture } from "@react-three/drei";
 import { DoubleSide, Mesh, RepeatWrapping } from "three";
-import { TimeConductor } from "musicaljuggling";
+import { Clock } from "musicaljuggling";
 import { TimeControls } from "../ui/TimeControls";
 import { Button } from "@react-three/uikit-default";
 import { Root, Text } from "@react-three/uikit";
+import { DanubeBleuFigure } from "../figures/danubebleu";
 
 function Ground(props: any) {
     return (
@@ -129,14 +130,14 @@ function WoodenSeat(props: any) {
 
 export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const stageRef = useRef<Mesh>(null);
-    const clock: TimeConductor = new TimeConductor({bounds:[0,20]});
+    const clock: Clock = new Clock({bounds:[0,20]});
     const [currentScene, setScene] = scene;    
     return (
         <group>
             <Ground/>
             <group position={[0, 0.01, -5]}>
                 <Plane ref={stageRef} args={[18, 18]} position={[0, 0, 0]} rotation={[Math.PI/2, 0, 0]} castShadow receiveShadow>
-                    <meshStandardMaterial color="#8B4513" roughness={0.8} metalness={0.1} side={DoubleSide} />
+                    <meshStandardMaterial color="white" roughness={0.8} metalness={0.1} side={DoubleSide} />
                 </Plane>
 
                 <Plane args={[12, 8]} position={[0, 4, -8]}>
@@ -175,7 +176,9 @@ export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<
             <WoodenSeat position={[0, 0, 35]} rotation={[0, Math.PI, 0]}/>
 
             <TimeControls timeConductor={clock}></TimeControls>
-
+            <group >
+                <DanubeBleuFigure clock={clock}/>
+            </group>
             <ambientLight intensity={1} />
             <pointLight position={[10, 10, 10]} />
             <group position={[0, 1, 0]}>

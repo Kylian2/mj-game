@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Button, Slider, Toggle } from "@react-three/uikit-default";
 import { Play, Pause, Gauge, Snail, Rabbit, Infinity } from '@react-three/uikit-lucide';
-import { TimeConductor } from "musicaljuggling";
+import { Clock } from "musicaljuggling";
 import { Root, Container, Text } from "@react-three/uikit";
 import { SimpleSlider } from "./SimpleSlider";
 
@@ -33,7 +33,7 @@ type TimeState = "playing" | "paused" | "reachedEnd";
  * @param props.backgroundColor - BackgroundColor of the ui
  * @returns The 3D time controls interface
  */
-export function TimeControls({ timeConductor, backgroundColor }: { timeConductor: TimeConductor, backgroundColor?: string }) {
+export function TimeControls({ timeConductor, backgroundColor }: { timeConductor: Clock, backgroundColor?: string }) {
     // The timeConductor is the single truth source here, so UI callbacks should
     // interact with timeConductor instead of setting their own state.
 
