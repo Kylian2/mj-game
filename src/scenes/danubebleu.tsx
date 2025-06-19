@@ -137,11 +137,11 @@ export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<
             <Ground/>
             <group position={[0, 0.01, -5]}>
                 <Plane ref={stageRef} args={[18, 18]} position={[0, 0, 0]} rotation={[Math.PI/2, 0, 0]} castShadow receiveShadow>
-                    <meshStandardMaterial color="white" roughness={0.8} metalness={0.1} side={DoubleSide} />
+                    <meshStandardMaterial color="#C6D8AF" roughness={0.8} metalness={0.1} side={DoubleSide} />
                 </Plane>
 
                 <Plane args={[12, 8]} position={[0, 4, -8]}>
-                    <meshLambertMaterial color="#4169E1" opacity={0.7} transparent side={DoubleSide} />
+                    <meshLambertMaterial color="#6D6875" opacity={0.7} transparent side={DoubleSide} />
                 </Plane>
 
                 <Plane args={[2, 8]} position={[-6, 4, -7]} rotation={[0, Math.PI / 4, 0]}>
@@ -175,13 +175,13 @@ export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<
 
             <WoodenSeat position={[0, 0, 35]} rotation={[0, Math.PI, 0]}/>
 
-            <TimeControls timeConductor={clock}></TimeControls>
+            <TimeControls timeConductor={clock} ></TimeControls>
             <group >
                 <DanubeBleuFigure clock={clock}/>
             </group>
             <ambientLight intensity={1} />
             <pointLight position={[10, 10, 10]} />
-            <group position={[0, 1, 0]}>
+            <group position={[9, 1, 0]}>
                 <Root>
                     <Button onClick={() => setScene("home")}>
                         <Text>Accueil</Text>

@@ -1,5 +1,5 @@
-import { Canvas, extend, useFrame, type Euler, type Vector3 } from "@react-three/fiber";
-import { Performance } from "musicaljuggling";
+import { Canvas, extend, useFrame, type Euler, type ThreeElements, type Vector3 } from "@react-three/fiber";
+import { BallView, DEFAULT_BALL_COLOR, DEFAULT_BALL_HEIGHT_SEGMENT, DEFAULT_BALL_RADIUS, DEFAULT_BALL_WIDTH_SEGMENT, Performance, PerformanceContext } from "musicaljuggling";
 import {
     BasicBall,
     type BasicBallProps,
@@ -9,7 +9,7 @@ import {
     type BasicTableProps
 } from "musicaljuggling";
 import { Clock } from "musicaljuggling";
-import { useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { PerformanceModel } from "musicaljuggling";
 import { PerformanceView } from "musicaljuggling";
 import * as THREE from "three";
@@ -19,11 +19,22 @@ import mergeRefs from 'merge-refs';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { OrbitControls } from "@react-three/drei";
+import type { Mesh } from "three";
+import { distance, userData } from "three/tsl";
+import { useXRInputSourceState } from "@react-three/xr";
 //TODO : styles ?
 //TODO : clock optional for performance ?
 
 //To extend those components to make them usable with R3F
 extend({ LineMaterial, LineGeometry });
+
+export type BallReactProps = {
+    name?: string;
+    id: string;
+    radius?: number;
+    widthSegments?: number;
+    heightSegments?: number;
+    color?: THREE.ColorRepresentation;} & ThreeElements["object3D"];
 
 export function DanubeBleuFigure({clock}: {clock:Clock}) {
     const [model] = useState(() => patternToModel(pattern));
@@ -52,6 +63,38 @@ export function DanubeBleuFigure({clock}: {clock:Clock}) {
     );
 }
 
+function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>){
+
+    const points = ballObject.children[1] as THREE.Points;
+    
+    let scalingFactor = 1.1;
+
+    if(ballObject.userData.isScaling){
+        points.scale.set(points.scale.x*scalingFactor,points.scale.y*scalingFactor,points.scale.z*scalingFactor);
+        const material = points.material;
+        if (material instanceof THREE.PointsMaterial) {
+            material.size = (material.size || 0.05) * 0.9;
+        }else{
+            console.error("Material is not PointsMaterial");
+        }  
+        ballObject.userData.tickcount++; 
+    }else{
+        ballObject.userData.isScaling = false;
+        points.scale.set(1, 1, 1);
+        const material = points.material;
+        if (material instanceof THREE.PointsMaterial) {
+            material.size = 0.05;
+        }else{
+            console.error("Material is not PointsMaterial");
+        }  
+    }
+
+    if(ballObject.userData.tickcount > 40){
+        ballObject.userData.tickcount = 0;
+        ballObject.userData.isScaling = false;
+    }
+}
+
 function CanvasContent({
     clock,
     model,
@@ -72,10 +115,24 @@ function CanvasContent({
         new Map<string, { leftHand: THREE.Object3D | null; rightHand: THREE.Object3D | null }>()
     );
 
+    const rightController = useXRInputSourceState('controller', 'right');
+    const leftController = useXRInputSourceState('controller', 'left');
+
     useFrame(() => {
         const time = performance.getClock().getTime();
-        // Update the balls' positions.
+        const rightPos = new THREE.Vector3();
+        rightController?.object?.getWorldPosition(rightPos);
+
+        const leftPos = new THREE.Vector3();
+        leftController?.object?.getWorldPosition(leftPos);
+
+        // Update the balls' positions. 
+        // let i = 0;
         for (const [id, ballView] of performance.balls) {
+            // i++;
+            // if (i === 2 || i === 1){
+            //     continue;
+            // }
             let { model, curvePoints, initCurve } = ballView;
             const ballObject = ballsRef.current.get(id);
             const curveObject = curvesRef.current.get(id);
@@ -85,6 +142,10 @@ function CanvasContent({
             }
 
             if (ballObject !== undefined) {
+                if(ballObject.userData.tickcount === undefined){
+                    ballObject.userData.tickcount = 0;
+                }
+
                 const pos = model.position(time);
                 const o = new THREE.Object3D()
                 if(performance.position){
@@ -92,7 +153,7 @@ function CanvasContent({
                 }
                 if(!performance.getClock().isPaused()){
                     curvePoints.shift();
-                    curvePoints.push(model.position(time+0.81));
+                    curvePoints.push(model.position(time+0.51));
                     curvePoints = curvePoints.map((p) => o.worldToLocal(p.clone()));
 
                     let curve = new THREE.CatmullRomCurve3(curvePoints);
@@ -109,9 +170,25 @@ function CanvasContent({
                     pos.clone()
                 );
                 ballObject.position.copy(localPos);
+
+
+                const radius = (ballObject.children[0] as Mesh).geometry.parameters.radius;
+                const distanceRight = rightPos.distanceTo(ballObject.position);
+                const distanceLeft = leftPos.distanceTo(ballObject.position);
+
+                if(distanceRight <= radius){
+                    ballObject.userData.isScaling = true;
+                    console.log("Rightenter")
+                }
+
+                if(distanceLeft <= radius){
+                    ballObject.userData.isScaling = true;
+                    console.log("Rightenter")
+                }
+
+                animation(ballObject);
             }
 
-                      
         }
 
 
@@ -119,7 +196,6 @@ function CanvasContent({
         for (const [name, { model }] of performance.jugglers) {
             const jugglerObject = jugglersRef.current.get(name);
             const jugglerPos = performance.jugglers.get(name)?.position;
-            console.log('helo');
             if (jugglerObject !== undefined) {
                 if (jugglerObject.leftHand !== null) {
                     const o = new THREE.Object3D()
@@ -145,11 +221,56 @@ function CanvasContent({
         }
     });
 
-    function mapBalls({ id, ref, ...props }: BasicBallProps) {
+    function mapBalls({ radius, id, ref, 
+        widthSegments, 
+        heightSegments, 
+        color, 
+        ...props }: BallReactProps) {
+
+        // Create / delete the ball.
+
+        const caughtColor = () => {
+            const ball = ballsRef.current.get(id);
+            if(ball && ball.children[0]){
+                ball.children[0].material.color.set('blue')
+            }
+            //console.log('catch');
+        }
+
+        const tossedColor = () => {
+            const ball = ballsRef.current.get(id);
+            if(ball && ball.children[0]){
+                ball.children[0].material.color.set(color);
+            }
+            //console.log('toss')
+        }
+        useEffect(() => {
+            if (performance === undefined) {
+                return;
+            }
+            const ballModel = performance.model.balls.get(id);
+            if (ballModel === undefined) {
+                return;
+            }
+            const ball = new BallView({
+                model: ballModel
+            });
+            ball.model.addEventListener("caught", () => caughtColor())
+            ball.model.addEventListener("tossed", () => tossedColor())
+            performance.balls.set(id, ball);
+            return () => {
+                performance.balls.delete(id);
+            };
+        }, [performance, radius, id]);
+
+        radius ??= DEFAULT_BALL_RADIUS;
+        widthSegments ??= DEFAULT_BALL_WIDTH_SEGMENT;
+        heightSegments ??= DEFAULT_BALL_HEIGHT_SEGMENT;
+        color ??= DEFAULT_BALL_COLOR;
+        
         return (
             <>
-                <BasicBall
-                    id={id}
+                <object3D
                     key={id}
                     ref={mergeRefs((elem) => {
                         if (elem === null) {
@@ -160,7 +281,16 @@ function CanvasContent({
                         /*@ts-expect-error React 19's refs are weirdly typed*/
                     }, ref)}
                     {...props}
-                />
+                >
+                    <mesh>
+                        <sphereGeometry args={[radius, widthSegments, heightSegments]}/>
+                        <meshBasicMaterial color={color}/>
+                    </mesh>
+                    <points>
+                        <sphereGeometry args={[radius-0.05, 16, 16]}/>
+                        <pointsMaterial size={0.03} transparent={true} color={'yellow'}/>
+                    </points>
+                </object3D>
                 <mesh ref={mergeRefs((elem) => {
                         if (elem === null) {
                             curvesRef.current.delete(id);
@@ -169,8 +299,9 @@ function CanvasContent({
                         }
                     })}>
                     <lineGeometry />
-                    <lineMaterial color={props.color} linewidth={0.002}/>
+                    <lineMaterial color={color} linewidth={0.002}/>
                 </mesh>
+                 
             </>
         );
     }
@@ -248,9 +379,9 @@ function CanvasContent({
     }
 
     return (
-        <Performance audio={true} clock={clock} performance={performance} position={[0, 0, -7]}>
+        <Performance audio={true} clock={clock} performance={performance} position={[0, 0, 0]}>
             {jugglersData.map((elem) => mapJuggler(elem))}
-            {tablesData.map((elem) => mapTables(elem))}
+            {/*{tablesData.map((elem) => mapTables(elem))}*/}
             {ballsData.map((elem) => mapBalls(elem))}
         </Performance>
     );

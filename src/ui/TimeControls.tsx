@@ -33,7 +33,7 @@ type TimeState = "playing" | "paused" | "reachedEnd";
  * @param props.backgroundColor - BackgroundColor of the ui
  * @returns The 3D time controls interface
  */
-export function TimeControls({ timeConductor, backgroundColor }: { timeConductor: Clock, backgroundColor?: string }) {
+export function TimeControls({ timeConductor, backgroundColor, props }: { timeConductor: Clock, backgroundColor?: string ,props:any }) {
     // The timeConductor is the single truth source here, so UI callbacks should
     // interact with timeConductor instead of setting their own state.
 
@@ -188,7 +188,7 @@ export function TimeControls({ timeConductor, backgroundColor }: { timeConductor
     }
 
     return (
-        <group position={[0, 1, -2]}>
+        <group {...props} rotation={[0, Math.PI/2, 0]} position={[-3, 1, -5]}>
             <group position={[-3, 0, 0]}>
                 <Root gap={32} alignItems={'center'}>  
                     <Container
