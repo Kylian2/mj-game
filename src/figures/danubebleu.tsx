@@ -1,27 +1,38 @@
-import { Canvas, extend, useFrame, type Euler, type ThreeElements, type Vector3 } from "@react-three/fiber";
-import { BallView, DEFAULT_BALL_COLOR, DEFAULT_BALL_HEIGHT_SEGMENT, DEFAULT_BALL_RADIUS, DEFAULT_BALL_WIDTH_SEGMENT, Performance, PerformanceContext } from "musicaljuggling";
+import { useEffect, useRef, useState } from "react";
+import { extend, useFrame, type ThreeElements } from "@react-three/fiber";
+import { useXRInputSourceState } from "@react-three/xr";
+import * as THREE from "three";
+import type { Mesh } from "three";
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+
 import {
-    BasicBall,
     type BasicBallProps,
     BasicJuggler,
     type BasicJugglerProps,
     BasicTable,
     type BasicTableProps
 } from "musicaljuggling";
-import { Clock } from "musicaljuggling";
-import { use, useEffect, useRef, useState } from "react";
-import { PerformanceModel } from "musicaljuggling";
-import { PerformanceView } from "musicaljuggling";
-import * as THREE from "three";
-import { pattern } from "./patterns/pattern";
-import { patternToModel } from "musicaljuggling";
+import { 
+    BallView, 
+    Clock,
+    PerformanceModel,
+    PerformanceView, 
+    Alerts, 
+    AlertsTimeline,
+    Performance, 
+    patternToModel
+} from "musicaljuggling";
+import { 
+    type AlertEvent,
+    DEFAULT_BALL_COLOR, 
+    DEFAULT_BALL_HEIGHT_SEGMENT, 
+    DEFAULT_BALL_RADIUS, 
+    DEFAULT_BALL_WIDTH_SEGMENT
+} from "musicaljuggling";
 import mergeRefs from 'merge-refs';
-import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { OrbitControls } from "@react-three/drei";
-import type { Mesh } from "three";
-import { distance, userData } from "three/tsl";
-import { useXRInputSourceState } from "@react-three/xr";
+import { pattern } from "./patterns/pattern";
+
 //TODO : styles ?
 //TODO : clock optional for performance ?
 
@@ -69,7 +80,7 @@ function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>){
     
     let scalingFactor = 1.1;
 
-    if(ballObject.userData.isScaling){
+    if(ballObject.userData.isExplosing){
         points.scale.set(points.scale.x*scalingFactor,points.scale.y*scalingFactor,points.scale.z*scalingFactor);
         const material = points.material;
         if (material instanceof THREE.PointsMaterial) {
@@ -79,7 +90,7 @@ function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>){
         }  
         ballObject.userData.tickcount++; 
     }else{
-        ballObject.userData.isScaling = false;
+        ballObject.userData.isExplosing = false;
         points.scale.set(1, 1, 1);
         const material = points.material;
         if (material instanceof THREE.PointsMaterial) {
@@ -91,7 +102,7 @@ function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>){
 
     if(ballObject.userData.tickcount > 40){
         ballObject.userData.tickcount = 0;
-        ballObject.userData.isScaling = false;
+        ballObject.userData.isExplosing = false;
     }
 }
 
@@ -118,6 +129,89 @@ function CanvasContent({
     const rightController = useXRInputSourceState('controller', 'right');
     const leftController = useXRInputSourceState('controller', 'left');
 
+    const caughtColorInf = (ball: THREE.Object3D) => {
+        if(ball && ball.children[0]){
+            ball.children[0].material.color.set('blue')
+        }
+    }
+
+    const tossedColorInf = (ball: THREE.Object3D) => {
+        if(ball && ball.children[0]){
+            ball.children[0].material.color.set('green')
+        }
+    }
+
+    const reset = (ball: THREE.Object3D) => {
+        if(ball && ball.children[0]){
+            ball.children[0].material.color.set(ball.userData.baseColor);
+        }
+    }
+
+    const scale = (ball: THREE.Object3D) => {
+        if (!ball.userData.isScaling) {
+            return;
+        }
+
+        const scaleDuration = 0.5;
+        const scaleAvencement = (clock.getTime() - ball.userData.startScalingTime) / scaleDuration;
+                
+        const startScale = 1;
+        const targetScale = 2;
+        
+        const currentScale = startScale + (targetScale - startScale) * scaleAvencement;
+        
+        ball.scale.setScalar(currentScale);
+    };
+
+    useEffect(() => {
+        const alertesTimeline = new AlertsTimeline();
+    
+        model.balls.forEach((ball) => {
+            alertesTimeline.addTimeline(ball.timeline, 0.2)
+            //console.log(ball.timeline.stringify())
+        })
+
+        console.log('----------- ALERTES TIMELINE --------------')
+        alertesTimeline.forEach((a) => {
+            console.log(a[0] + 's ('+ a[1][1] +'): ' +a[1][0].stringify())
+        })
+
+        console.log('----------- ALERTES TIMELINE / WITH CLOCK RUNNING --------------')
+        let alertes = new Alerts(alertesTimeline, clock);
+
+        alertes.addEventListener("inf", (e: AlertEvent, time: number) => {
+            const ballModel = e._ballRef.deref();
+            const ball = ballsRef.current.get(ballModel.id);
+            if(!ball){
+                return
+            }
+            if(e.actionDescription === 'tossed'){
+                ball.userData.startScalingTime = time
+                ball.userData.isScaling = true;
+            }
+            if(e.actionDescription === 'caught'){
+                caughtColorInf(ball);
+            }
+        })
+
+        alertes.addEventListener("sup", (e: AlertEvent) => {
+            const ballModel = e._ballRef.deref();
+            const ball = ballsRef.current.get(ballModel.id);
+            if(!ball){
+                return
+            }
+            if(e.actionDescription === 'tossed'){
+                ball.userData.isScaling = false;
+                ball.scale.setScalar(1);
+                console.log('end');
+
+            }
+            if(e.actionDescription === 'caught'){
+                reset(ball);
+            }
+        })
+    })
+
     useFrame(() => {
         const time = performance.getClock().getTime();
         const rightPos = new THREE.Vector3();
@@ -126,13 +220,8 @@ function CanvasContent({
         const leftPos = new THREE.Vector3();
         leftController?.object?.getWorldPosition(leftPos);
 
-        // Update the balls' positions. 
-        // let i = 0;
         for (const [id, ballView] of performance.balls) {
-            // i++;
-            // if (i === 2 || i === 1){
-            //     continue;
-            // }
+
             let { model, curvePoints, initCurve } = ballView;
             const ballObject = ballsRef.current.get(id);
             const curveObject = curvesRef.current.get(id);
@@ -177,16 +266,17 @@ function CanvasContent({
                 const distanceLeft = leftPos.distanceTo(ballObject.position);
 
                 if(distanceRight <= radius){
-                    ballObject.userData.isScaling = true;
+                    ballObject.userData.isExplosing = true;
                     console.log("Rightenter")
                 }
 
                 if(distanceLeft <= radius){
-                    ballObject.userData.isScaling = true;
+                    ballObject.userData.isExplosing = true;
                     console.log("Rightenter")
                 }
 
                 animation(ballObject);
+                scale(ballObject);
             }
 
         }
@@ -228,22 +318,6 @@ function CanvasContent({
         ...props }: BallReactProps) {
 
         // Create / delete the ball.
-
-        const caughtColor = () => {
-            const ball = ballsRef.current.get(id);
-            if(ball && ball.children[0]){
-                ball.children[0].material.color.set('blue')
-            }
-            //console.log('catch');
-        }
-
-        const tossedColor = () => {
-            const ball = ballsRef.current.get(id);
-            if(ball && ball.children[0]){
-                ball.children[0].material.color.set(color);
-            }
-            //console.log('toss')
-        }
         useEffect(() => {
             if (performance === undefined) {
                 return;
@@ -255,8 +329,6 @@ function CanvasContent({
             const ball = new BallView({
                 model: ballModel
             });
-            ball.model.addEventListener("caught", () => caughtColor())
-            ball.model.addEventListener("tossed", () => tossedColor())
             performance.balls.set(id, ball);
             return () => {
                 performance.balls.delete(id);
@@ -281,6 +353,7 @@ function CanvasContent({
                         /*@ts-expect-error React 19's refs are weirdly typed*/
                     }, ref)}
                     {...props}
+                    userData={{ baseColor: color }} 
                 >
                     <mesh>
                         <sphereGeometry args={[radius, widthSegments, heightSegments]}/>
