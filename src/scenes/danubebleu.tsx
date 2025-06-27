@@ -130,7 +130,7 @@ function WoodenSeat(props: any) {
 
 export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const stageRef = useRef<Mesh>(null);
-    const clock: Clock = new Clock({bounds:[0,20]});
+    const clock: Clock = new Clock({bounds:[0,15]});
     const [currentScene, setScene] = scene;    
     return (
         <group>
@@ -175,7 +175,7 @@ export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<
 
             <WoodenSeat position={[0, 0, 35]} rotation={[0, Math.PI, 0]}/>
 
-            <TimeControls timeConductor={clock} ></TimeControls>
+            <TimeControls timeConductor={clock} position={[3, 0.5, 0]} rotation={[0, -Math.PI/2, 0]}></TimeControls>
             <group >
                 <DanubeBleuFigure clock={clock}/>
             </group>
