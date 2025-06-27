@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* eslint-disable @eslint-react/web-api/no-leaked-event-listener */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { Button, Slider, Toggle } from "@react-three/uikit-default";
 import { Play, Pause, Gauge, Snail, Rabbit, Infinity } from '@react-three/uikit-lucide';
 import { Clock } from "musicaljuggling";
@@ -33,7 +33,7 @@ type TimeState = "playing" | "paused" | "reachedEnd";
  * @param props.backgroundColor - BackgroundColor of the ui
  * @returns The 3D time controls interface
  */
-export function TimeControls({ timeConductor, backgroundColor, props }: { timeConductor: Clock, backgroundColor?: string ,props:any }) {
+export function TimeControls({ timeConductor, backgroundColor, ...props }: { timeConductor: Clock, backgroundColor?: string } & JSX.IntrinsicElements['group']) {
     // The timeConductor is the single truth source here, so UI callbacks should
     // interact with timeConductor instead of setting their own state.
 
@@ -188,7 +188,7 @@ export function TimeControls({ timeConductor, backgroundColor, props }: { timeCo
     }
 
     return (
-        <group {...props} rotation={[0, Math.PI/2, 0]} position={[-3, 1, -5]}>
+        <group {...props}>
             <group position={[-3, 0, 0]}>
                 <Root gap={32} alignItems={'center'}>  
                     <Container
