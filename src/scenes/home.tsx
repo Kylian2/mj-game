@@ -57,7 +57,7 @@ function Poster({title, image, position, rotation, scene, setScene} :{title?:Str
                     <Image height={200} src={image}></Image>
                 </Container>
                 <Text color={'white'} textAlign={'center'}>{title}</Text>
-                <Button marginTop={12} backgroundColor={'white'}><Text color={'black'} onClick={()=> {if(scene && setScene){ setScene(scene) }}}>Jouer</Text></Button>
+                <Button onClick={()=> {if(scene && setScene){ setScene(scene) }}} marginTop={12} backgroundColor={'white'}><Text color={'black'}>Jouer</Text></Button>
             </Root>
         </group>
     )
