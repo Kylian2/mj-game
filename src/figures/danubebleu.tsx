@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { extend, useFrame, type ThreeElements } from "@react-three/fiber";
 import { useXRInputSourceState } from "@react-three/xr";
 import * as THREE from "three";
@@ -7,6 +7,7 @@ import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 
 import {
+    Alerts,
     AlertsTimeline,
     type BasicBallProps,
     BasicJuggler,
@@ -31,6 +32,7 @@ import {
 import mergeRefs from 'merge-refs';
 import { pattern } from "./patterns/pattern";
 import { HandDetector, scale } from "../utilities/handDetector";
+import { Root, Text } from "@react-three/uikit";
 //TODO : styles ?
 //TODO : clock optional for performance ?
 
@@ -45,19 +47,85 @@ export type BallReactProps = {
     heightSegments?: number;
     color?: THREE.ColorRepresentation;} & ThreeElements["object3D"];
 
-export function DanubeBleuFigure({clock}: {clock:Clock}) {
-    const [model] = useState(() => patternToModel(pattern));
-    const [ballsData] = useState<BasicBallProps[]>([
+export function DanubeBleuFigure({clock, simon = false, visualizer = false}: {clock:Clock, simon:boolean, visualizer:boolean}) {
+    const initPattern = structuredClone(pattern);
+    const patternRef = useRef(initPattern);
+    const sequence = pattern.jugglers[0].events[0][1].pattern?.replace(/ /g, "");
+    const limit = sequence?.length ?? 0;
+    const sizeRef = useRef(2);
+    const errorRef = useRef(false);
+    const [model, setModel] = useState(() => patternToModel(patternRef.current));
+
+    const [text, setText] = useState(() => 'Bon jeu');
+
+    useEffect(() => {
+        clock.pause();
+        clock.setTime(0);
+
+        let currentPattern;
+        if (simon === true) {
+            patternRef.current.jugglers[0].events[0][1].pattern = sequence?.slice(0, sizeRef.current);
+            currentPattern = patternRef.current;
+        } else {
+            currentPattern = structuredClone(pattern);
+            patternRef.current = currentPattern;
+        }
+        
+        const newModel = patternToModel(currentPattern);
+        setModel(newModel);
+        
+        const [start, end] = newModel.patternTimeBounds();
+        
+        if (start && end && clock) {
+            clock.setBounds([0, end]);
+        }
+    }, [simon, sequence, pattern, clock]);
+    
+    const [ballsData] = useState([
         { id: "Do?K", color: "red" },
         { id: "Re?K", color: "orange" },
         { id: "Mi?K", color: "yellow" }
     ]);
-    const [jugglersData] = useState<BasicJugglerProps[]>([
-        { name: "Kylian", position: [-1,0,0] as [number, number, number] }
+    const [jugglersData] = useState([
+        { name: "Kylian", position: [-1, 0, 0] }
     ]);
-    const [tablesData] = useState<BasicTableProps[]>([
+    const [tablesData] = useState([
         { name: "KylianT", position: [0, 0, 0], rotation: [0, Math.PI, 0] }
     ]);
+
+    const handleReachedEnd = useCallback(() => {
+        
+        if(simon === true){
+            if(!errorRef.current){
+                sizeRef.current++; 
+            }   
+            errorRef.current = false;    
+            clock.pause();
+        
+            if (sizeRef.current <= limit) {
+                const newSlice = sequence?.slice(0, sizeRef.current);            
+                patternRef.current.jugglers[0].events[0][1].pattern = newSlice;
+                const newModel = patternToModel(patternRef.current);
+                setModel(newModel);
+                const [start, end] = newModel.patternTimeBounds();
+                if (start && end) {
+                    clock.setBounds([0, end]);
+                }
+                setText("On ajoute un nouveau mouvement ("+sizeRef.current+"/"+limit+")");
+            }else{
+                sizeRef.current = 1
+            }
+            
+            setTimeout(() => {
+                clock.setTime(0);
+                clock.play();
+            }, 100);
+        }
+    }, [sequence, limit, clock]);
+
+    useEffect(() => {
+        clock.addEventListener('reachedEnd', handleReachedEnd);
+    }, [clock, handleReachedEnd]);
 
     return (
         <>
@@ -67,6 +135,10 @@ export function DanubeBleuFigure({clock}: {clock:Clock}) {
             ballsData={ballsData}
             jugglersData={jugglersData}
             tablesData={tablesData}
+            visualizer={visualizer}
+            errorRef={errorRef}
+            setText={setText}
+            text={text}
         />
         </>
     );
@@ -109,15 +181,31 @@ function CanvasContent({
     model,
     ballsData,
     jugglersData,
-    tablesData
+    tablesData,
+    visualizer = false,
+    errorRef,
+    setText,
+    text,
 }: {
     clock: Clock;
     model: PerformanceModel;
     ballsData: BasicBallProps[];
     jugglersData: BasicJugglerProps[];
     tablesData: BasicTableProps[];
+    visualizer: boolean,
+    errorRef?: RefObject<boolean>,
+    setText: Dispatch<SetStateAction<string>>
+    text: string,
 }) {
-    const [performance] = useState(() => new PerformanceView({ model: model, clock: clock }));
+    const [performance, setPerformance] = useState(() => 
+        new PerformanceView({ model: model, clock: clock })
+    );
+
+    useEffect(() => {
+        const newPerformance = new PerformanceView({ model: model, clock: clock });
+        setPerformance(newPerformance);
+    }, [model, clock]);  
+    
     const ballsRef = useRef(new Map<string, THREE.Object3D>());
     const curvesRef = useRef(new Map<string, THREE.Line>());
     const jugglersRef = useRef(
@@ -126,12 +214,7 @@ function CanvasContent({
 
     const rightController = useXRInputSourceState('controller', 'right');
     const leftController = useXRInputSourceState('controller', 'left');
-
-    const alertesTimeline = new AlertsTimeline();
-    model.balls.forEach((ball) => {
-        alertesTimeline.addTimeline(ball.timeline, 0.2)
-    })
-
+ 
     useFrame(() => {
         const time = performance.getClock().getTime();
         const rightPos = new THREE.Vector3();
@@ -291,7 +374,11 @@ function CanvasContent({
                     <lineGeometry />
                     <lineMaterial color={color} linewidth={0.002}/>
                 </mesh>
-                <HandDetector alertesTimeline={alertesTimeline} ballsRef={ballsRef} clock={clock} visualizer/>
+                <HandDetector model={model} ballsRef={ballsRef} clock={clock} visualizer={visualizer} setText={setText} onError={() => {
+                    if(errorRef != undefined){
+                        errorRef.current = true;
+                    }
+                }}/>
             </>
         );
     }
@@ -343,10 +430,17 @@ function CanvasContent({
     }
 
     return (
+        <>
         <Performance audio={true} clock={clock} performance={performance} position={[0, 0, 0]}>
             {jugglersData.map((elem) => mapJuggler(elem))}
             {/*{tablesData.map((elem) => mapTables(elem))}*/}
             {ballsData.map((elem) => mapBalls(elem))}
         </Performance>
+        <group position={[2, 1.5, 0]} rotation={[0, -Math.PI/2, 0]}>
+            <Root>
+                <Text backgroundColor={'white'}>{text}</Text>
+            </Root>
+        </group>
+        </>
     );
 }

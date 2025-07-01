@@ -16,7 +16,7 @@ export const pattern: JugglingPatternRaw = {
                     {
                         tempo: "1",
                         hands: [["Do"], ["Re", "Mi"]],
-                        pattern: "R35003 35003 35003 42334 05003 35003 35003 42334 0300"
+                        pattern: "R35003 35003 35003 42334 05003 35003 35003 42334 0300",
                     }
                 ]
             ]

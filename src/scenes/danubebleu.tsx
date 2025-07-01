@@ -1,11 +1,11 @@
-import { useRef, useMemo, type SetStateAction, type Dispatch } from "react";
+import { useRef, useMemo, type SetStateAction, type Dispatch, useState } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { OrbitControls, Box, Cylinder, Sphere, Plane, useTexture } from "@react-three/drei";
 import { DoubleSide, Mesh, RepeatWrapping } from "three";
 import { Clock } from "musicaljuggling";
 import { TimeControls } from "../ui/TimeControls";
-import { Button } from "@react-three/uikit-default";
-import { Root, Text } from "@react-three/uikit";
+import { Button, Label, Switch } from "@react-three/uikit-default";
+import { Container, Root, Text } from "@react-three/uikit";
 import { DanubeBleuFigure } from "../figures/danubebleu";
 
 function Ground(props: any) {
@@ -131,6 +131,7 @@ function WoodenSeat(props: any) {
 export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const stageRef = useRef<Mesh>(null);
     const clock: Clock = new Clock({bounds:[0,15]});
+    const [simon, setSimon] = useState<boolean>(true);
     const [currentScene, setScene] = scene;    
     return (
         <group>
@@ -177,7 +178,7 @@ export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<
 
             <TimeControls timeConductor={clock} position={[3, 0.5, 0]} rotation={[0, -Math.PI/2, 0]}></TimeControls>
             <group >
-                <DanubeBleuFigure clock={clock}/>
+                <DanubeBleuFigure clock={clock} simon={simon} visualizer={true}/>
             </group>
             <ambientLight intensity={1} />
             <pointLight position={[10, 10, 10]} />
@@ -186,6 +187,12 @@ export function DanubeBleu({ scene }: { scene: [string, Dispatch<SetStateAction<
                     <Button onClick={() => setScene("home")}>
                         <Text>Accueil</Text>
                     </Button>
+                    {/* <Container flexDirection="row" alignItems="center" gap={8}>
+                        <Switch onCheckedChange={() => setSimon(!simon)} />
+                        <Label>
+                            <Text>Airplane Mode</Text>
+                        </Label>
+                    </Container> */}
                 </Root>
             </group>
         </group>

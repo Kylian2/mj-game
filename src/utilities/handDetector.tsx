@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useXRInputSourceState, type XRControllerState } from "@react-three/xr";
 import * as THREE from "three";
@@ -17,20 +17,32 @@ import { Box } from "@react-three/drei";
 export function HandDetector({
     clock,
     ballsRef,
-    alertesTimeline,
-    visualizer = false
+    model,
+    visualizer = false,
+    onError,
+    setText,
 }: {
     clock:Clock,
     ballsRef: RefObject<Map<string, THREE.Object3D<THREE.Object3DEventMap>>>,
-    alertesTimeline: AlertsTimeline,
+    model: PerformanceModel,
     visualizer?: boolean,
+    onError: Function,
+    setText?: Dispatch<SetStateAction<string>>
 }){
 
     const lastInfEvent = useRef<AlertEvent>(null)
     const lastSupEvent = useRef<AlertEvent>(null)
     const listenedEvent = useRef<Array<AlertEvent>>([]);
 
+    const Aclick = useRef(false);
+    const Xclick = useRef(false);
+
     useEffect(() => {
+
+        const alertesTimeline = new AlertsTimeline();
+        model.balls.forEach((ball) => {
+            alertesTimeline.addTimeline(ball.timeline, 0.2)
+        })
 
         let alertes = new Alerts(alertesTimeline, clock);
 
@@ -70,6 +82,21 @@ export function HandDetector({
                     leftRef.current.visible = false;  
                 }
             }
+
+            if(e.actionDescription === 'caught' && e.hand.isRightHand() && !Aclick.current){
+                onError();
+                if(setText){
+                    setText("Vous n'avez pas rattrape la balle a droite");
+                }
+            }
+
+            if(e.actionDescription === 'caught' && !e.hand.isRightHand() && !Xclick.current){
+                onError();
+                if(setText){
+                    setText("Vous n'avez pas rattrape la balle a gauche");
+                }            
+            }
+
             const index = listenedEvent.current.indexOf(e);
             if (index > -1) {
                 listenedEvent.current.splice(index, 1);
@@ -80,7 +107,7 @@ export function HandDetector({
             alertes.removeAllEventListeners();
         };
 
-    }, [])
+    }, [model])
 
     clock.addEventListener('reachedEnd', () => {
         listenedEvent.current = [];
@@ -123,6 +150,7 @@ export function HandDetector({
                     if(!ballObject || !rightRef.current) return
                     ballObject.userData.isExplosing = true;
                     rightRef.current.visible = false;
+                    Aclick.current = true;
                 }
                 if(!event.hand.isRightHand() && leftX){
                     score++;
@@ -131,6 +159,7 @@ export function HandDetector({
                     if(!ballObject || !leftRef.current) return
                     ballObject.userData.isExplosing = true;
                     leftRef.current.visible = false;
+                    Xclick.current = true;
                 }
             }
             // if(event.actionDescription === 'tossed'){
@@ -153,10 +182,18 @@ export function HandDetector({
 
         if(rightA && A.length === 0){
             vibrateController(right, 3, 100);
+            onError();
+            if(setText){
+                setText("Mauvais timing !");
+            } 
         }
 
         if(leftX && X.length === 0){
             vibrateController(left, 3, 100);
+            onError();
+            if(setText){
+                setText("Mauvais timing !");
+            } 
         }
     
         for(let i = eventToRemove.length-1; i > 0; i--){
