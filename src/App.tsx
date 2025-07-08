@@ -11,6 +11,7 @@ import { HomeScene } from "./scenes/home";
 import { DanubeBleu } from "./scenes/danubebleu";
 import { WebGLRenderer } from "three";
 import { DanubeBleuFigure } from "./figures/danubebleu";
+import { Tutorial } from "./scenes/tutorial";
 
 const store = createXRStore();
 
@@ -57,7 +58,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 
 export default function App() {
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("danubebleu");
+    const [scene, setScene] = useState<string>("tutorial");
 
     return (
         <div className="canvas-container">
@@ -71,6 +72,7 @@ export default function App() {
                     <XRSpaceManager scene={scene} xrOrigin={xrOrigin} />
 
                     {scene === "home" && <HomeScene scene={[scene, setScene]} />}
+                    {scene === "tutorial" && <Tutorial scene={[scene, setScene]} />}
                     {scene === "danubebleu" && <DanubeBleu scene={[scene, setScene]} />}
 
                     <MovePlayer xrOrigin={xrOrigin} />

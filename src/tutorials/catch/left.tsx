@@ -1,50 +1,38 @@
-import {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
-    type Dispatch,
-    type RefObject,
-    type SetStateAction
-} from "react";
+// React and Three.js Fiber
 import { extend, useFrame, type ThreeElements } from "@react-three/fiber";
+
+// React-XR
 import { useXRInputSourceState } from "@react-three/xr";
+
+// Utilities
+import mergeRefs from "merge-refs";
+import { useEffect, useRef, useState } from "react";
+
+// Three.js
 import * as THREE from "three";
-import type { Mesh } from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import type { Mesh } from "three";
 
+// Musical Juggling Library
 import {
-    Alerts,
-    AlertsTimeline,
-    type BasicBallProps,
-    BasicJuggler,
-    type BasicJugglerProps,
-    BasicTable,
-    type BasicTableProps
-} from "musicaljuggling";
-import {
-    BallView,
-    Clock,
-    PerformanceModel,
-    PerformanceView,
     Performance,
-    patternToModel
-} from "musicaljuggling";
-import {
+    Clock,
+    BallView,
+    BasicJuggler,
     DEFAULT_BALL_COLOR,
     DEFAULT_BALL_HEIGHT_SEGMENT,
     DEFAULT_BALL_RADIUS,
-    DEFAULT_BALL_WIDTH_SEGMENT
+    DEFAULT_BALL_WIDTH_SEGMENT,
+    patternToModel,
+    PerformanceView,
+    type BasicJugglerProps,
+    type JugglingPatternRaw,
+    type BasicBallProps
 } from "musicaljuggling";
-import mergeRefs from "merge-refs";
-import { pattern } from "./patterns/pattern";
-import { HandDetector, scale } from "../utilities/handDetector";
+import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
-//TODO : styles ?
-//TODO : clock optional for performance ?
 
-//To extend those components to make them usable with R3F
 extend({ LineMaterial, LineGeometry });
 
 export type BallReactProps = {
@@ -56,175 +44,44 @@ export type BallReactProps = {
     color?: THREE.ColorRepresentation;
 } & ThreeElements["object3D"];
 
-export function DanubeBleuFigure({
-    clock,
-    simon = false,
-    visualizer = false
-}: {
-    clock: Clock;
-    simon: boolean;
-    visualizer: boolean;
-}) {
-    const initPattern = structuredClone(pattern);
-    const patternRef = useRef(initPattern);
-    const sequence = pattern.jugglers[0].events[0][1].pattern?.replace(/ /g, "");
-    const limit = sequence?.length ?? 0;
-    const sizeRef = useRef(2);
-    const errorRef = useRef(false);
-    const [model, setModel] = useState(() => patternToModel(patternRef.current));
+const pattern: JugglingPatternRaw = {
+    jugglers: [
+        {
+            name: "Jean",
+            table: "JeanT",
+            balls: [{ id: "Do?K", name: "Do", sound: "Do" }],
+            events: [
+                [
+                    "0",
+                    {
+                        tempo: "1",
+                        hands: [[], ["Do"]],
+                        pattern: "R300"
+                    }
+                ]
+            ]
+        }
+    ],
+    musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
+};
 
-    const [text, setText] = useState(() => "Bon jeu");
+export function CatchLeft() {
+    const [model, setModel] = useState(() => patternToModel(pattern));
 
+    const [ballsData] = useState([{ id: "Do?K", color: "red" }]);
+
+    const [jugglersData] = useState([{ name: "Jean", position: [-1, 0, 0] }]);
+
+    let [start, end] = model.patternTimeBounds();
+    if (!end) end = 15;
+    const clock = useRef<Clock>(new Clock({ bounds: [0, end] }));
     useEffect(() => {
-        clock.pause();
-        clock.setTime(0);
+        clock.current.setPlaybackRate(0.25);
+    }, []);
 
-        let currentPattern;
-        if (simon === true) {
-            patternRef.current.jugglers[0].events[0][1].pattern = sequence?.slice(
-                0,
-                sizeRef.current
-            );
-            currentPattern = patternRef.current;
-        } else {
-            currentPattern = structuredClone(pattern);
-            patternRef.current = currentPattern;
-        }
-
-        const newModel = patternToModel(currentPattern);
-        setModel(newModel);
-
-        const [start, end] = newModel.patternTimeBounds();
-
-        if (start && end && clock) {
-            clock.setBounds([0, end]);
-        }
-    }, [simon, sequence, pattern, clock]);
-
-    const [ballsData] = useState([
-        { id: "Do?K", color: "red" },
-        { id: "Re?K", color: "orange" },
-        { id: "Mi?K", color: "yellow" }
-    ]);
-    const [jugglersData] = useState([{ name: "Kylian", position: [-1, 0, 0] }]);
-    const [tablesData] = useState([
-        { name: "KylianT", position: [0, 0, 0], rotation: [0, Math.PI, 0] }
-    ]);
-
-    const handleReachedEnd = useCallback(() => {
-        if (simon === true) {
-            if (!errorRef.current) {
-                sizeRef.current++;
-            }
-            errorRef.current = false;
-            clock.pause();
-
-            if (sizeRef.current <= limit) {
-                const newSlice = sequence?.slice(0, sizeRef.current);
-                patternRef.current.jugglers[0].events[0][1].pattern = newSlice;
-                const newModel = patternToModel(patternRef.current);
-                setModel(newModel);
-                const [start, end] = newModel.patternTimeBounds();
-                if (start && end) {
-                    clock.setBounds([0, end]);
-                }
-                setText("On ajoute un nouveau mouvement (" + sizeRef.current + "/" + limit + ")");
-            } else {
-                sizeRef.current = 1;
-            }
-
-            setTimeout(() => {
-                clock.setTime(0);
-                clock.play();
-            }, 100);
-        }
-    }, [sequence, limit, clock]);
-
-    useEffect(() => {
-        clock.addEventListener("reachedEnd", handleReachedEnd);
-    }, [clock, handleReachedEnd]);
-
-    return (
-        <>
-            <CanvasContent
-                clock={clock}
-                model={model}
-                ballsData={ballsData}
-                jugglersData={jugglersData}
-                tablesData={tablesData}
-                visualizer={visualizer}
-                errorRef={errorRef}
-                setText={setText}
-                text={text}
-            />
-        </>
-    );
-}
-
-function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
-    const points = ballObject.children[1] as THREE.Points;
-
-    let scalingFactor = 1.1;
-
-    if (ballObject.userData.isExplosing) {
-        points.scale.set(
-            points.scale.x * scalingFactor,
-            points.scale.y * scalingFactor,
-            points.scale.z * scalingFactor
-        );
-        const material = points.material;
-        if (material instanceof THREE.PointsMaterial) {
-            material.size = (material.size || 0.05) * 0.9;
-        } else {
-            console.error("Material is not PointsMaterial");
-        }
-        ballObject.userData.tickcount++;
-    } else {
-        ballObject.userData.isExplosing = false;
-        points.scale.set(1, 1, 1);
-        const material = points.material;
-        if (material instanceof THREE.PointsMaterial) {
-            material.size = 0.05;
-        } else {
-            console.error("Material is not PointsMaterial");
-        }
-    }
-
-    if (ballObject.userData.tickcount > 40) {
-        ballObject.userData.tickcount = 0;
-        ballObject.userData.isExplosing = false;
-    }
-}
-
-function CanvasContent({
-    clock,
-    model,
-    ballsData,
-    jugglersData,
-    tablesData,
-    visualizer = false,
-    errorRef,
-    setText,
-    text
-}: {
-    clock: Clock;
-    model: PerformanceModel;
-    ballsData: BasicBallProps[];
-    jugglersData: BasicJugglerProps[];
-    tablesData: BasicTableProps[];
-    visualizer: boolean;
-    errorRef?: RefObject<boolean>;
-    setText: Dispatch<SetStateAction<string>>;
-    text: string;
-}) {
     const [performance, setPerformance] = useState(
-        () => new PerformanceView({ model: model, clock: clock })
+        () => new PerformanceView({ model: model, clock: clock.current })
     );
-
-    useEffect(() => {
-        const newPerformance = new PerformanceView({ model: model, clock: clock });
-        setPerformance(newPerformance);
-    }, [model, clock]);
 
     const ballsRef = useRef(new Map<string, THREE.Object3D>());
     const curvesRef = useRef(new Map<string, THREE.Line>());
@@ -233,15 +90,137 @@ function CanvasContent({
     );
 
     const rightController = useXRInputSourceState("controller", "right");
-    const leftController = useXRInputSourceState("controller", "left");
+    const tickcount = useRef(0);
+    const Bcount = useRef(0);
+    const [text, setText] = useState("Appuyez sur B pour commencer");
+
+    const level = useRef(1);
+    const errorCount = useRef(0);
+
+    const levelsInformations = new Map<
+        number,
+        {
+            congratulations: string[];
+            speed: number;
+        }
+    >([
+        [
+            1,
+            {
+                congratulations: ["Super ! Vous avez compris", "Essayons un peu plus vite"],
+                speed: 0.3
+            }
+        ],
+        [
+            2,
+            {
+                congratulations: ["Genial ! On peut encore accelerer"],
+                speed: 0.5
+            }
+        ],
+        [
+            3,
+            {
+                congratulations: ["Vous etes au top ! Vitesse reelle maintenant"],
+                speed: 0.8
+            }
+        ],
+        [
+            4,
+            {
+                congratulations: ["Impressionnant !"],
+                speed: 1.0
+            }
+        ]
+    ]);
+
+    // Fonction helper pour attendre
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Fonction pour le countdown
+    const countdown = async () => {
+        setText("Preparez-vous");
+        await wait(1000);
+        setText("3");
+        await wait(1000);
+        setText("2");
+        await wait(1000);
+        setText("1");
+        await wait(1000);
+        setText("Go !");
+    };
+
+    const nextLevel = async () => {
+        const infos = levelsInformations.get(level.current);
+        console.log("Passage de niveau (actuellement) = " + level.current);
+        console.log(infos);
+        if (!infos) {
+            console.warn("No information for level " + level.current);
+            return;
+        }
+
+        if (errorCount.current > 0) {
+            errorCount.current = 0;
+            setText("Dommage, allez on reessaye");
+            await wait(2000);
+
+            await countdown();
+
+            clock.current.setPlaybackRate(infos.speed);
+            clock.current.setTime(0);
+            clock.current.play();
+            return;
+        }
+
+        errorCount.current = 0;
+        for (let i = 0; i < infos.congratulations.length; i++) {
+            setText(infos.congratulations[i]);
+            if (i < infos.congratulations.length - 1) {
+                await wait(2000);
+            }
+        }
+
+        await wait(1500);
+
+        if (level.current + 1 <= 4) {
+            console.log("Incrementation de level, avant = " + level.current);
+            level.current++;
+            console.log("Incrementation de level, apres = " + level.current);
+        } else {
+            setText("Bravo ! Vous avez termine tous les niveaux !");
+            return;
+        }
+
+        const nextInfo = levelsInformations.get(level.current);
+        if (!nextInfo) {
+            console.warn("No information for level " + level.current);
+            return;
+        }
+
+        await countdown();
+
+        clock.current.setPlaybackRate(nextInfo.speed);
+        clock.current.setTime(0);
+        clock.current.play();
+    };
+
+    useEffect(() => {
+        const handleReachedEnd = () => {
+            console.log("reachedEnd");
+            clock.current.setTime(0);
+            clock.current.pause();
+            nextLevel();
+        };
+
+        clock.current.addEventListener("reachedEnd", handleReachedEnd);
+
+        return () => {
+            clock.current.removeEventListener("reachedEnd", handleReachedEnd);
+        };
+    }, []);
 
     useFrame(() => {
         const time = performance.getClock().getTime();
-        const rightPos = new THREE.Vector3();
-        rightController?.object?.getWorldPosition(rightPos);
-
-        const leftPos = new THREE.Vector3();
-        leftController?.object?.getWorldPosition(leftPos);
 
         for (const [id, ballView] of performance.balls) {
             let { model, curvePoints } = ballView;
@@ -280,21 +259,7 @@ function CanvasContent({
 
                 const localPos = o.worldToLocal(pos.clone());
                 ballObject.position.copy(localPos);
-
-                const radius = (ballObject.children[0] as Mesh).geometry.parameters.radius;
-                const distanceRight = rightPos.distanceTo(ballObject.position);
-                const distanceLeft = leftPos.distanceTo(ballObject.position);
-
-                if (distanceRight <= radius) {
-                    //ballObject.userData.isExplosing = true;
-                }
-
-                if (distanceLeft <= radius) {
-                    //ballObject.userData.isExplosing = true;
-                }
-
                 animation(ballObject);
-                scale(ballObject, clock);
             }
         }
 
@@ -329,6 +294,23 @@ function CanvasContent({
                 }
             }
         }
+
+        // Gestion du bouton B
+        const rightB = rightController?.gamepad?.["b-button"]?.button;
+        if (rightB && Math.abs(Bcount.current - tickcount.current) > 200) {
+            Bcount.current = tickcount.current;
+            if (clock.current.isPaused()) {
+                (async () => {
+                    await countdown();
+                    clock.current.play();
+                })();
+            } else {
+                clock.current.pause();
+                setText("Pause");
+            }
+        }
+
+        tickcount.current++;
     });
 
     function mapBalls({
@@ -445,34 +427,72 @@ function CanvasContent({
         );
     }
 
-    function mapTables({ name, ...props }: BasicTableProps) {
-        return <BasicTable name={name} key={name} {...props} />;
-    }
-
     return (
         <>
-            <Performance audio={true} clock={clock} performance={performance} position={[0, 0, 0]}>
-                {jugglersData.map((elem) => mapJuggler(elem))}
-                {/*{tablesData.map((elem) => mapTables(elem))}*/}
-                {ballsData.map((elem) => mapBalls(elem))}
+            <Performance
+                audio={true}
+                clock={clock.current}
+                performance={performance}
+                position={[1, 0, 0]}
+            >
+                {jugglersData.map((elem) => mapJuggler(elem as BasicJugglerProps))}
+                {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
-            <group position={[2, 1.5, 0]} rotation={[0, -Math.PI / 2, 0]}>
-                <Root>
-                    <Text backgroundColor={"white"}>{text}</Text>
-                </Root>
-            </group>
-            <HandDetector
+            <TextComponent text={text}></TextComponent>
+            <TossProgress
                 model={model}
+                clock={clock.current}
                 ballsRef={ballsRef}
-                clock={clock}
-                visualizer={visualizer}
-                setText={setText}
-                onError={() => {
-                    if (errorRef != undefined) {
-                        errorRef.current = true;
-                    }
-                }}
+                errorCount={errorCount}
+                setErrorText={setText}
             />
         </>
+    );
+}
+
+export function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
+    const points = ballObject.children[1] as THREE.Points;
+
+    let scalingFactor = 1.1;
+
+    if (ballObject.userData.isExplosing) {
+        points.scale.set(
+            points.scale.x * scalingFactor,
+            points.scale.y * scalingFactor,
+            points.scale.z * scalingFactor
+        );
+        const material = points.material;
+        if (material instanceof THREE.PointsMaterial) {
+            material.size = (material.size || 0.05) * 0.9;
+        } else {
+            console.error("Material is not PointsMaterial");
+        }
+        ballObject.userData.tickcount++;
+    } else {
+        ballObject.userData.isExplosing = false;
+        points.scale.set(1, 1, 1);
+        const material = points.material;
+        if (material instanceof THREE.PointsMaterial) {
+            material.size = 0.05;
+        } else {
+            console.error("Material is not PointsMaterial");
+        }
+    }
+
+    if (ballObject.userData.tickcount > 40) {
+        ballObject.userData.tickcount = 0;
+        ballObject.userData.isExplosing = false;
+    }
+}
+
+function TextComponent({ text }: { text: string }) {
+    return (
+        <group position={[3.5, 1.3, 0]} rotation={[0, -Math.PI / 2, 0]}>
+            <Root>
+                <Text backgroundColor={"white"} padding={2}>
+                    {text}
+                </Text>
+            </Root>
+        </group>
     );
 }
