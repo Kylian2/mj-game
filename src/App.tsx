@@ -66,7 +66,11 @@ export default function App() {
             <Canvas style={{ background: "skyblue" }}>
                 <XR store={store}>
                     <PerspectiveCamera position={[0, 4, 10]} makeDefault />
-                    <XROrigin ref={xrOrigin} />
+                    <XROrigin
+                        ref={xrOrigin}
+                        rotation={[0, -Math.PI / 2, 0]}
+                        position={[0.08, 0.2, 0]}
+                    />
                     <OrbitControls />
 
                     <XRSpaceManager scene={scene} xrOrigin={xrOrigin} />
@@ -75,7 +79,6 @@ export default function App() {
                     {scene === "tutorial" && <Tutorial scene={[scene, setScene]} />}
                     {scene === "danubebleu" && <DanubeBleu scene={[scene, setScene]} />}
 
-                    <MovePlayer xrOrigin={xrOrigin} />
                     <FlyPlayer xrOrigin={xrOrigin} />
                     <RotatePlayer />
                 </XR>
