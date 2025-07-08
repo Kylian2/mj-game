@@ -129,6 +129,14 @@ export function TossProgress({
                 }
             }
 
+            if (e.actionDescription === "tossed") {
+                if (e.hand.isRightHand()) {
+                    Aclick.current = false;
+                } else {
+                    Xclick.current = false;
+                }
+            }
+
             const index = listenedEvent.current.indexOf(e);
             if (index > -1) {
                 listenedEvent.current.splice(index, 1);

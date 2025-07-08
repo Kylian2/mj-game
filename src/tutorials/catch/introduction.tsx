@@ -32,7 +32,6 @@ import {
 } from "musicaljuggling";
 import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
-import { animation } from "./left";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -360,4 +359,41 @@ function TextComponent({ text }: { text: string }) {
             </Root>
         </group>
     );
+}
+
+function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
+    const points = ballObject.children[1] as THREE.Points;
+
+    let scalingFactor = 1.1;
+
+    if (ballObject.userData.isExplosing) {
+        points.scale.set(
+            points.scale.x * scalingFactor,
+            points.scale.y * scalingFactor,
+            points.scale.z * scalingFactor
+        );
+        const material = points.material;
+        if (material instanceof THREE.PointsMaterial) {
+            material.size = (material.size || 0.05) * 0.9;
+        } else {
+            console.error("Material is not PointsMaterial");
+        }
+        ballObject.userData.tickcount++;
+    } else {
+        ballObject.userData.isExplosing = false;
+        points.scale.set(1, 1, 1);
+        const material = points.material;
+        if (material instanceof THREE.PointsMaterial) {
+            material.size = 0.05;
+        } else {
+            console.error("Material is not PointsMaterial");
+        }
+    }
+
+    if (ballObject.userData.tickcount > 40) {
+        ballObject.userData.tickcount = 0;
+        ballObject.userData.isExplosing = false;
+    }
+
+    return;
 }
