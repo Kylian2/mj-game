@@ -56,7 +56,7 @@ const pattern: JugglingPatternRaw = {
                     {
                         tempo: "1",
                         hands: [[], ["Do"]],
-                        pattern: "R4"
+                        pattern: "R3003003003003003003003003003003003003003003003003003003003003"
                     }
                 ]
             ]
@@ -69,7 +69,7 @@ function wait(ms: number) {
     new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function TossIntroduction({ finished }: { finished: Dispatch<SetStateAction<boolean>> }) {
+export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<string>> }) {
     const [model, setModel] = useState(() => patternToModel(pattern));
 
     const [ballsData] = useState([{ id: "Do?K", color: "red" }]);
@@ -193,7 +193,7 @@ export function TossIntroduction({ finished }: { finished: Dispatch<SetStateActi
             currentProgression.current++;
             setText(texts[currentProgression.current]);
             if (currentProgression.current >= texts.length) {
-                finished(true);
+                change("toss-right");
             }
         }
 

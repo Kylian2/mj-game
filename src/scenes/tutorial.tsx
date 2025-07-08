@@ -1,8 +1,9 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { DoubleSide } from "three";
-import { CatchLeft } from "../tutorials/catch/left";
-import { TossIntroduction } from "../tutorials/catch/introduction";
+import { TossLeft } from "../tutorials/toss/left";
+import { TossIntroduction } from "../tutorials/toss/introduction";
 import * as THREE from "three";
+import { TossRight } from "../tutorials/toss/right";
 
 export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const [currentScene, setScene] = scene;
@@ -145,7 +146,7 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
         );
     }
 
-    const [tossTutorial, setTossTutoriel] = useState(true);
+    const [tutorial, setTutorial] = useState("toss-introduction");
 
     return (
         <group>
@@ -176,8 +177,9 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
             <Backdrop />
 
             {/* Tutorials elements */}
-            {!tossTutorial && <TossIntroduction finished={setTossTutoriel} />}
-            {tossTutorial && <CatchLeft />}
+            {tutorial === "toss-introduction" && <TossIntroduction change={setTutorial} />}
+            {tutorial === "toss-right" && <TossRight change={setTutorial} />}
+            {tutorial === "toss-left" && <TossLeft change={setTutorial} />}
         </group>
     );
 }

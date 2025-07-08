@@ -6,7 +6,7 @@ import { useXRInputSourceState } from "@react-three/xr";
 
 // Utilities
 import mergeRefs from "merge-refs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch } from "react";
 
 // Three.js
 import * as THREE from "three";
@@ -65,7 +65,7 @@ const pattern: JugglingPatternRaw = {
     musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
 };
 
-export function CatchLeft() {
+export function TossRight({ change }: { change: Dispatch<SetStateAction<string>> }) {
     const [model, setModel] = useState(() => patternToModel(pattern));
 
     const [ballsData] = useState([{ id: "Do?K", color: "red" }]);
@@ -76,8 +76,7 @@ export function CatchLeft() {
     if (!end) end = 15;
     const clock = useRef<Clock>(new Clock({ bounds: [0, end] }));
     useEffect(() => {
-        clock.current.setPlaybackRate(0.25);
-        clock.current.play();
+        clock.current.setPlaybackRate(0.3);
     }, []);
 
     const [performance, setPerformance] = useState(
@@ -188,7 +187,9 @@ export function CatchLeft() {
             level.current++;
             console.log("Incrementation de level, apres = " + level.current);
         } else {
-            setText("Bravo ! Vous avez termine tous les niveaux !");
+            setText("Vous maitrisez la main droite, passons à la main gauche !");
+            await wait(4000);
+            change("toss-left");
             return;
         }
 
