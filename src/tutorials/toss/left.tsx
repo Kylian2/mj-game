@@ -390,6 +390,7 @@ export function TossLeft({ change }: { change: Dispatch<SetStateAction<string>> 
             <BasicJuggler
                 name={name}
                 key={name}
+                visible={false}
                 rightHandRef={(elem) => {
                     const ref = jugglersRef.current.get(name);
                     if (ref === undefined) {

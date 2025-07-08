@@ -284,9 +284,9 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
     function mapJuggler({ name, ...props }: BasicJugglerProps) {
         return (
             <BasicJuggler
-                visible={false}
                 name={name}
                 key={name}
+                visible={false}
                 rightHandRef={(elem) => {
                     const ref = jugglersRef.current.get(name);
                     if (ref === undefined) {
