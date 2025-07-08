@@ -77,6 +77,7 @@ export function CatchLeft() {
     const clock = useRef<Clock>(new Clock({ bounds: [0, end] }));
     useEffect(() => {
         clock.current.setPlaybackRate(0.25);
+        clock.current.play();
     }, []);
 
     const [performance, setPerformance] = useState(
@@ -450,7 +451,7 @@ export function CatchLeft() {
     );
 }
 
-export function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
+function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
     const points = ballObject.children[1] as THREE.Points;
 
     let scalingFactor = 1.1;
@@ -483,6 +484,8 @@ export function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
         ballObject.userData.tickcount = 0;
         ballObject.userData.isExplosing = false;
     }
+
+    return;
 }
 
 function TextComponent({ text }: { text: string }) {
