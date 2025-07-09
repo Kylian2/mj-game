@@ -4,6 +4,9 @@ import { TossLeft } from "../tutorials/toss/left";
 import { TossIntroduction } from "../tutorials/toss/introduction";
 import * as THREE from "three";
 import { TossRight } from "../tutorials/toss/right";
+import { CatchIntroduction } from "../tutorials/catch/introduction";
+import { CatchRight } from "../tutorials/catch/right";
+import { CatchLeft } from "../tutorials/catch/left";
 
 export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const [currentScene, setScene] = scene;
@@ -146,7 +149,7 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
         );
     }
 
-    const [tutorial, setTutorial] = useState("toss-introduction");
+    const [tutorial, setTutorial] = useState("catch-introduction");
 
     return (
         <group>
@@ -180,6 +183,9 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
             {tutorial === "toss-introduction" && <TossIntroduction change={setTutorial} />}
             {tutorial === "toss-right" && <TossRight change={setTutorial} />}
             {tutorial === "toss-left" && <TossLeft change={setTutorial} />}
+            {tutorial === "catch-introduction" && <CatchIntroduction change={setTutorial} />}
+            {tutorial === "catch-right" && <CatchRight change={setTutorial} />}
+            {tutorial === "catch-left" && <CatchLeft change={setTutorial} />}
         </group>
     );
 }
