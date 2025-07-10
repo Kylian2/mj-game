@@ -150,7 +150,7 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
         );
     }
 
-    const [tutorial, setTutorial] = useState("demo-hand-state");
+    const [tutorial, setTutorial] = useState("catch-right");
 
     return (
         <group>
