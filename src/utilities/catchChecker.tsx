@@ -22,8 +22,8 @@ export function CatchChecker({
 }) {
     const listenedEvent = useRef<Array<AlertEvent>>([]);
 
-    const squeezeRightClick = useRef(false);
-    const squeezeLeftClick = useRef(false);
+    const hasCatchRight = useRef(false);
+    const hasCatchLeft = useRef(false);
     const Aclick = useRef(false);
     const Xclick = useRef(false);
 
@@ -43,7 +43,7 @@ export function CatchChecker({
             if (
                 e.actionDescription === "caught" &&
                 e.hand.isRightHand() &&
-                !squeezeRightClick.current
+                !hasCatchRight.current
             ) {
                 if (errorCount) errorCount.current++;
                 if (setErrorText) {
@@ -54,7 +54,7 @@ export function CatchChecker({
             if (
                 e.actionDescription === "caught" &&
                 !e.hand.isRightHand() &&
-                !squeezeLeftClick.current
+                !hasCatchLeft.current
             ) {
                 if (errorCount) errorCount.current++;
                 if (setErrorText) {
@@ -95,25 +95,51 @@ export function CatchChecker({
         let leftSqueeze = left?.gamepad?.["xr-standard-squeeze"]?.button;
         let rightSqueeze = right?.gamepad?.["xr-standard-squeeze"]?.button;
 
+        const rightPos = new THREE.Vector3();
+        right?.object?.getWorldPosition(rightPos);
+
+        const leftPos = new THREE.Vector3();
+        left?.object?.getWorldPosition(leftPos);
+
         let eventToRemove = [];
 
         for (let i = 0; i < listenedEvent.current.length; i++) {
             const event = listenedEvent.current[i];
 
             if (event.actionDescription === "caught") {
-                if (event.hand.isRightHand() && rightSqueeze) {
+                if (event.hand.isRightHand()) {
                     eventToRemove.push(i);
                     const ballObject = ballsRef.current.get(event.ball.id);
                     if (!ballObject) return;
-                    ballObject.userData.isExplosing = true;
-                    squeezeRightClick.current = true;
+                    const radius = (ballObject.children[0] as THREE.Mesh).geometry.parameters
+                        .radius;
+                    const ballWorldPos = new THREE.Vector3();
+                    ballObject.getWorldPosition(ballWorldPos);
+                    const distanceRight = rightPos.distanceTo(ballWorldPos);
+                    console.log("radiusright = " + radius);
+                    console.log("distanceright = " + distanceRight);
+                    if (distanceRight <= radius) {
+                        console.log("catchright");
+                        ballObject.userData.isExplosing = true;
+                        hasCatchRight.current = true;
+                    }
                 }
-                if (!event.hand.isRightHand() && leftSqueeze) {
+                if (!event.hand.isRightHand()) {
                     eventToRemove.push(i);
                     const ballObject = ballsRef.current.get(event.ball.id);
                     if (!ballObject) return;
-                    ballObject.userData.isExplosing = true;
-                    squeezeLeftClick.current = true;
+                    const radius = (ballObject.children[0] as THREE.Mesh).geometry.parameters
+                        .radius;
+                    const ballWorldPos = new THREE.Vector3();
+                    ballObject.getWorldPosition(ballWorldPos);
+                    const distanceLeft = leftPos.distanceTo(ballWorldPos);
+                    console.log("radiusleft = " + radius);
+                    console.log("distanceleft = " + distanceLeft);
+                    if (distanceLeft <= radius) {
+                        console.log("catchleft");
+                        ballObject.userData.isExplosing = true;
+                        hasCatchLeft.current = true;
+                    }
                 }
             }
         }
@@ -123,22 +149,6 @@ export function CatchChecker({
         const leftSqueezeList = listenedEvent.current.filter(
             (e) => e.actionDescription === "caught" && !e.hand.isRightHand()
         );
-
-        if (rightSqueeze && rightSqueezeList.length === 0) {
-            vibrateController(right, 3, 100);
-            if (errorCount) errorCount.current++;
-            if (setErrorText) {
-                setErrorText("Mauvais timing !");
-            }
-        }
-
-        if (leftSqueeze && leftSqueezeList.length === 0) {
-            vibrateController(left, 3, 100);
-            if (errorCount) errorCount.current++;
-            if (setErrorText) {
-                setErrorText("Mauvais timing !");
-            }
-        }
 
         for (let i = eventToRemove.length - 1; i > 0; i--) {
             listenedEvent.current.splice(i, 1);

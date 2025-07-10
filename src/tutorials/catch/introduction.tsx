@@ -97,11 +97,11 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
 
     const currentProgression = useRef(0);
     const texts = [
-        "Pour rattraper une balle, il faut appuyer sur les boutons laterals des manettes",
+        "Pour rattraper une balle, il faut appuyer sur les boutons lateraux des manettes",
         "Utilisez le bouton droit pour attraper à droite, et le bouton gauche pour attraper à gauche",
-        "Vous pouvez vous aider de la prévisualisation de la trajectoire de la balle pour anticiper les rattrapers",
+        "Vous pouvez vous aider de la previsualisation de la trajectoire de la balle pour anticiper les rattrapers",
         "Si vous reussissez a attraper la balle, vous verrez des particules autour de la balle",
-        "Appuyez sur B pour passer à la pratique"
+        "Appuyez sur B pour passer a la pratique"
     ];
 
     const [text, setText] = useState(texts[currentProgression.current]);

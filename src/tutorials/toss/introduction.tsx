@@ -101,7 +101,7 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
         "En jeu, pour lancer la balle de la main droite il faut appuyer sur A",
         "Et sur X pour lancer de la gauche",
         "Si le timing de votre lancer est bon, vous verrez des particules autour de la balle",
-        "Appuyez sur B pour passer à la pratique"
+        "Appuyez sur B pour passer a la pratique"
     ];
 
     const [text, setText] = useState(texts[currentProgression.current]);
