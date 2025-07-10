@@ -1,4 +1,5 @@
 import { useThree } from "@react-three/fiber";
+import { EventDispatcher } from "musicaljuggling";
 import * as THREE from "three";
 
 /**
@@ -157,4 +158,123 @@ export function isCloseHand(
 ): boolean {
     if (!(hand && frame && frame.getJointPose && referenceSpace)) return false;
     return !isOpenHand(hand, frame, referenceSpace, threshold);
+}
+
+type HandActionEvents = "pinch" | "pinch-middle" | "opened" | "closed";
+
+export interface HandActionEvent {
+    hand: XRHand;
+    side: "left" | "right";
+}
+
+export class HandState extends EventDispatcher<HandActionEvents> {
+    wasPinching = { left: false, right: false };
+    wasPinchingMiddle = { left: false, right: false };
+    wasOpenHand = { left: false, right: false };
+    wasCloseHand = { left: false, right: false };
+
+    pinchThreshold = 0.025;
+    pinchMiddleThreshold = 0.025;
+    openHandThreshold = 0.08;
+
+    rightHand: XRHand | undefined;
+    leftHand: XRHand | undefined;
+
+    constructor({
+        rightHand,
+        leftHand,
+        pinchThreshold = 0.025,
+        pinchMiddleThreshold = 0.025,
+        openHandThreshold = 0.08
+    }: {
+        rightHand?: XRHand;
+        leftHand?: XRHand;
+        pinchThreshold?: number;
+        pinchMiddleThreshold?: number;
+        openHandThreshold?: number;
+    }) {
+        super();
+        this.pinchThreshold = pinchThreshold;
+        this.pinchMiddleThreshold = pinchMiddleThreshold;
+        this.openHandThreshold = openHandThreshold;
+
+        if (rightHand) this.rightHand = rightHand;
+        if (leftHand) this.leftHand = leftHand;
+    }
+
+    update(frame: XRFrame | undefined, referenceSpace: XRReferenceSpace | undefined) {
+        if (!frame || !referenceSpace) return;
+
+        if (isPinching(this.rightHand, frame, referenceSpace)) {
+            if (!this.wasPinching.right) {
+                this.dispatchEvent("pinch", { hand: this.rightHand, side: "right" });
+            }
+            this.wasPinching.right = true;
+        } else {
+            this.wasPinching.right = false;
+        }
+
+        if (isPinching(this.leftHand, frame, referenceSpace)) {
+            if (!this.wasPinching.left) {
+                this.dispatchEvent("pinch", { hand: this.leftHand, side: "left" });
+            }
+            this.wasPinching.left = true;
+        } else {
+            this.wasPinching.left = false;
+        }
+
+        if (isPinchingMiddle(this.rightHand, frame, referenceSpace)) {
+            if (!this.wasPinchingMiddle.right) {
+                this.dispatchEvent("pinch-middle", { hand: this.rightHand, side: "right" });
+            }
+            this.wasPinchingMiddle.right = true;
+        } else {
+            this.wasPinchingMiddle.right = false;
+        }
+
+        if (isPinchingMiddle(this.leftHand, frame, referenceSpace)) {
+            if (!this.wasPinchingMiddle.left) {
+                this.dispatchEvent("pinch-middle", { hand: this.leftHand, side: "left" });
+            }
+            this.wasPinchingMiddle.left = true;
+        } else {
+            this.wasPinchingMiddle.left = false;
+        }
+
+        if (isOpenHand(this.rightHand, frame, referenceSpace)) {
+            if (!this.wasOpenHand.right) {
+                this.dispatchEvent("opened", { hand: this.rightHand, side: "right" });
+            }
+            this.wasOpenHand.right = true;
+        } else {
+            this.wasOpenHand.right = false;
+        }
+
+        if (isOpenHand(this.leftHand, frame, referenceSpace)) {
+            if (!this.wasOpenHand.left) {
+                this.dispatchEvent("opened", { hand: this.leftHand, side: "left" });
+            }
+            this.wasOpenHand.left = true;
+        } else {
+            this.wasOpenHand.left = false;
+        }
+
+        if (isCloseHand(this.rightHand, frame, referenceSpace)) {
+            if (!this.wasCloseHand.right) {
+                this.dispatchEvent("closed", { hand: this.rightHand, side: "right" });
+            }
+            this.wasCloseHand.right = true;
+        } else {
+            this.wasCloseHand.right = false;
+        }
+
+        if (isCloseHand(this.leftHand, frame, referenceSpace)) {
+            if (!this.wasCloseHand.left) {
+                this.dispatchEvent("closed", { hand: this.leftHand, side: "left" });
+            }
+            this.wasCloseHand.left = true;
+        } else {
+            this.wasCloseHand.left = false;
+        }
+    }
 }
