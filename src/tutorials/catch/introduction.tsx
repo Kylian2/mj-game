@@ -1,5 +1,5 @@
 // React and Three.js Fiber
-import { extend, useFrame, type ThreeElements } from "@react-three/fiber";
+import { extend, useFrame, useThree, type ThreeElements } from "@react-three/fiber";
 
 // React-XR
 import { useXRInputSourceState } from "@react-three/xr";
@@ -32,6 +32,7 @@ import {
 } from "musicaljuggling";
 import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
+import { HandState, isPinching, type HandActionEvent } from "../../utilities/handState";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -70,6 +71,10 @@ function wait(ms: number) {
 }
 
 export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<string>> }) {
+    const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
+
+    const referenceSpace = gl.xr.getReferenceSpace();
+
     const [model, setModel] = useState(() => patternToModel(pattern));
 
     const [ballsData] = useState([{ id: "Do?K", color: "orange" }]);
@@ -104,13 +109,81 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
         "Appuyez sur B pour passer a la pratique"
     ];
 
+    const subtexts = {
+        hand: "Pincer l'index pour avancer, pincer le majeur pour reculer",
+        controller: "Appuyer sur B pour avancer, sur Y pour reculer"
+    };
+
     const [text, setText] = useState(texts[currentProgression.current]);
+    const [subtext, setSubtext] = useState(subtexts.controller);
     const rightController = useXRInputSourceState("controller", "right");
+    const leftController = useXRInputSourceState("controller", "left");
     const tickcount = useRef(0);
-    const Bcount = useRef(0);
+    const clickCount = useRef(0);
     const explosionCount = useRef(0);
 
-    useFrame(() => {
+    const handleOK = () => {
+        if (Math.abs(clickCount.current - tickcount.current) > 100) {
+            clickCount.current = tickcount.current;
+            currentProgression.current++;
+            setText(texts[currentProgression.current]);
+            if (currentProgression.current >= texts.length) {
+                change("catch-right");
+            }
+            if (currentProgression.current >= 3) clock.current.pause();
+        }
+    };
+
+    const handleCancel = () => {
+        if (Math.abs(clickCount.current - tickcount.current) > 100) {
+            if (currentProgression.current - 1 >= 0) {
+                currentProgression.current--;
+            }
+            clickCount.current = tickcount.current;
+            setText(texts[currentProgression.current]);
+            if (currentProgression.current < 3) clock.current.play();
+        }
+    };
+
+    const [handState, setHandState] = useState<HandState>();
+    const handSourceRight = useXRInputSourceState("hand", "right");
+    const rightHand = handSourceRight?.inputSource?.hand;
+    const handSourceLeft = useXRInputSourceState("hand", "left");
+    const leftHand = handSourceLeft?.inputSource?.hand;
+
+    useEffect(() => {
+        if (leftHand && rightHand) {
+            setHandState(new HandState({ leftHand: leftHand, rightHand: rightHand }));
+        } else if (leftHand) {
+            setHandState(new HandState({ leftHand: leftHand }));
+        } else if (rightHand) {
+            setHandState(new HandState({ rightHand: rightHand }));
+        }
+    }, [leftHand, rightHand]);
+
+    useEffect(() => {
+        if (!handState) {
+            setSubtext(subtexts.controller);
+            return;
+        }
+        setSubtext(subtexts.hand);
+
+        handState.addEventListener("pinch", (e: HandActionEvent) => {
+            handleOK();
+        });
+
+        handState.addEventListener("pinch-middle", (e: HandActionEvent) => {
+            handleCancel();
+        });
+
+        return () => {
+            handState?.removeAllEventListeners();
+        };
+    }, [handState]);
+
+    useFrame((state, delta, frame) => {
+        handState?.update(frame, referenceSpace);
+
         const time = performance.getClock().getTime();
 
         for (const [id, ballView] of performance.balls) {
@@ -188,17 +261,15 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
 
         // Gestion du bouton B
         const rightB = rightController?.gamepad?.["b-button"]?.button;
-        if (rightB && Math.abs(Bcount.current - tickcount.current) > 200) {
-            Bcount.current = tickcount.current;
-            currentProgression.current++;
-            setText(texts[currentProgression.current]);
-            if (currentProgression.current >= texts.length) {
-                change("catch-right");
-            }
+        const leftY = leftController?.gamepad?.["y-button"]?.button;
+        if (rightB) {
+            handleOK();
+        }
+        if (leftY) {
+            handleCancel();
         }
 
         if (currentProgression.current >= 3) {
-            clock.current.pause();
             const ball = ballsRef.current.get("Do?K");
             if (ball && Math.abs(explosionCount.current - tickcount.current) > 70) {
                 explosionCount.current = tickcount.current;
@@ -335,12 +406,12 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
                 {jugglersData.map((elem) => mapJuggler(elem as BasicJugglerProps))}
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
-            <TextComponent text={text} />
+            <TextComponent text={text} subtext={subtext} />
         </>
     );
 }
 
-function TextComponent({ text }: { text: string }) {
+function TextComponent({ text, subtext }: { text: string; subtext: string }) {
     return (
         <group position={[3.5, 1.3, 0]} rotation={[0, -Math.PI / 2, 0]}>
             <Root flexDirection={"column"}>
@@ -348,7 +419,7 @@ function TextComponent({ text }: { text: string }) {
                     {text}
                 </Text>
                 <Text color={"white"} fontSize={12} marginTop={10}>
-                    Appuie sur B pour passer au suivant
+                    {subtext}
                 </Text>
             </Root>
         </group>
