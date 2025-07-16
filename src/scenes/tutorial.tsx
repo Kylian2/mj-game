@@ -8,6 +8,7 @@ import { CatchIntroduction } from "../tutorials/catch/introduction";
 import { CatchRight } from "../tutorials/catch/right";
 import { CatchLeft } from "../tutorials/catch/left";
 import { HandStateDemo } from "./handStateDemo";
+import { ActionLearnerScene } from "./actionLearnerPlayground";
 
 export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
     const [currentScene, setScene] = scene;
@@ -150,7 +151,7 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
         );
     }
 
-    const [tutorial, setTutorial] = useState("catch-introduction");
+    const [tutorial, setTutorial] = useState("learner");
 
     return (
         <group>
@@ -190,6 +191,9 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
 
             {/* Demo elements */}
             {tutorial === "demo-hand-state" && <HandStateDemo />}
+
+            {/* Action learner */}
+            {tutorial === "learner" && <ActionLearnerScene />}
         </group>
     );
 }

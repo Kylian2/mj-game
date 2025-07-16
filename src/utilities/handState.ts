@@ -7,7 +7,7 @@ import * as THREE from "three";
  * @param entry
  * @returns Vector3
  */
-function DOMPointReadOnlyToVector3(entry: DOMPointReadOnly) {
+export function DOMPointReadOnlyToVector3(entry: DOMPointReadOnly) {
     return new THREE.Vector3(entry.x, entry.y, entry.z);
 }
 

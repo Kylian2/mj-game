@@ -22,15 +22,36 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
     const { gl } = useThree() as { gl: WebGLRenderer & { xr: any } };
     const initialReferenceSpace = useRef<XRReferenceSpace | null>(null);
     const isInitialized = useRef(false);
+    const hasAppliedInitialOffset = useRef(false);
     const lastScene = useRef(scene);
 
-    // save initial reference space
     useFrame(() => {
         if (!isInitialized.current && gl.xr.isPresenting) {
             const currentReferenceSpace = gl.xr.getReferenceSpace();
-            if (currentReferenceSpace) {
-                initialReferenceSpace.current = currentReferenceSpace;
+
+            if (currentReferenceSpace && !hasAppliedInitialOffset.current) {
+                const yRotation = new XRRigidTransform(
+                    {
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                        w: 1
+                    },
+                    {
+                        x: 0,
+                        y: Math.sin(Math.PI / 4),
+                        z: 0,
+                        w: Math.cos(Math.PI / 4)
+                    }
+                );
+
+                const rotatedSpace = currentReferenceSpace.getOffsetReferenceSpace(yRotation);
+
+                gl.xr.setReferenceSpace(rotatedSpace);
+
+                initialReferenceSpace.current = rotatedSpace;
                 isInitialized.current = true;
+                hasAppliedInitialOffset.current = true;
             }
         }
     });
@@ -66,11 +87,7 @@ export default function App() {
             <Canvas style={{ background: "skyblue" }}>
                 <XR store={store}>
                     <PerspectiveCamera position={[0, 4, 10]} makeDefault />
-                    <XROrigin
-                        ref={xrOrigin}
-                        rotation={[0, -Math.PI / 2, 0]}
-                        position={[0.08, 0.2, 0]}
-                    />
+                    <XROrigin ref={xrOrigin} position={[0.08, 0.2, 0]} />
                     <OrbitControls />
 
                     <XRSpaceManager scene={scene} xrOrigin={xrOrigin} />
