@@ -253,7 +253,7 @@ export function TossProgress({
         <>
             {/* Indicateur gauche (fixe) */}
             <Box args={indicatorSize} position={leftIndicatorPosition}>
-                <meshBasicMaterial alphaHash={true} opacity={0.1}></meshBasicMaterial>
+                <meshBasicMaterial transparent opacity={0.1}></meshBasicMaterial>
             </Box>
             {/* Indicateur gauche (animé) */}
             <Box ref={leftRefToss} args={indicatorSize} position={leftFillPosition}>
@@ -262,7 +262,7 @@ export function TossProgress({
 
             {/* Indicateur droit (fixe) */}
             <Box args={indicatorSize} position={rightIndicatorPosition}>
-                <meshBasicMaterial alphaHash={true} opacity={0.1}></meshBasicMaterial>
+                <meshBasicMaterial transparent opacity={0.1}></meshBasicMaterial>
             </Box>
             {/* Indicateur droit (animé) */}
             <Box ref={rightRefToss} args={indicatorSize} position={rightFillPosition}>

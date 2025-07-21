@@ -5,7 +5,6 @@ import * as THREE from "three";
 import { Clock, PerformanceModel, Alerts, AlertsTimeline } from "musicaljuggling";
 import { type AlertEvent } from "musicaljuggling";
 import { Box } from "@react-three/drei";
-import { bool } from "three/tsl";
 
 export function CatchChecker({
     clock,
@@ -24,8 +23,6 @@ export function CatchChecker({
 
     const hasCatchRight = useRef(false);
     const hasCatchLeft = useRef(false);
-    const Aclick = useRef(false);
-    const Xclick = useRef(false);
 
     useEffect(() => {
         const alertesTimeline = new AlertsTimeline();
@@ -36,7 +33,15 @@ export function CatchChecker({
         let alertes = new Alerts(alertesTimeline, clock);
 
         alertes.addEventListener("inf", (e: AlertEvent) => {
-            if (e.actionDescription === "caught") listenedEvent.current.push(e);
+            if (e.actionDescription === "caught") {
+                listenedEvent.current.push(e);
+                // Réinitialiser les flags pour chaque nouvel événement
+                if (e.hand.isRightHand()) {
+                    hasCatchRight.current = false;
+                } else {
+                    hasCatchLeft.current = false;
+                }
+            }
         });
 
         alertes.addEventListener("sup", (e: AlertEvent) => {
@@ -47,7 +52,7 @@ export function CatchChecker({
             ) {
                 if (errorCount) errorCount.current++;
                 if (setErrorText) {
-                    setErrorText("Vous n'avez pas rattrape la balle a droite");
+                    setErrorText("Vous n'avez pas rattrapé la balle à droite");
                 }
             }
 
@@ -58,7 +63,7 @@ export function CatchChecker({
             ) {
                 if (errorCount) errorCount.current++;
                 if (setErrorText) {
-                    setErrorText("Vous n'avez pas rattrape la balle a gauche");
+                    setErrorText("Vous n'avez pas rattrapé la balle à gauche");
                 }
             }
 
@@ -92,67 +97,52 @@ export function CatchChecker({
     };
 
     useFrame(() => {
-        let leftSqueeze = left?.gamepad?.["xr-standard-squeeze"]?.button;
-        let rightSqueeze = right?.gamepad?.["xr-standard-squeeze"]?.button;
-
         const rightPos = new THREE.Vector3();
         right?.object?.getWorldPosition(rightPos);
 
         const leftPos = new THREE.Vector3();
         left?.object?.getWorldPosition(leftPos);
 
-        let eventToRemove = [];
+        const eventToRemove: number[] = [];
 
         for (let i = 0; i < listenedEvent.current.length; i++) {
             const event = listenedEvent.current[i];
 
             if (event.actionDescription === "caught") {
+                const ballObject = ballsRef.current?.get(event.ball.id);
+                if (!ballObject) continue;
+
+                const radius = (ballObject.children[0] as THREE.Mesh).geometry.parameters.radius;
+                const ballWorldPos = new THREE.Vector3();
+                ballObject.getWorldPosition(ballWorldPos);
+
                 if (event.hand.isRightHand()) {
-                    eventToRemove.push(i);
-                    const ballObject = ballsRef.current.get(event.ball.id);
-                    if (!ballObject) return;
-                    const radius = (ballObject.children[0] as THREE.Mesh).geometry.parameters
-                        .radius;
-                    const ballWorldPos = new THREE.Vector3();
-                    ballObject.getWorldPosition(ballWorldPos);
                     const distanceRight = rightPos.distanceTo(ballWorldPos);
-                    console.log("radiusright = " + radius);
-                    console.log("distanceright = " + distanceRight);
+
                     if (distanceRight <= radius) {
-                        console.log("catchright");
                         ballObject.userData.isExplosing = true;
                         hasCatchRight.current = true;
+                        vibrateController(right, 1, 50);
+                        eventToRemove.push(i);
                     }
-                }
-                if (!event.hand.isRightHand()) {
-                    eventToRemove.push(i);
-                    const ballObject = ballsRef.current.get(event.ball.id);
-                    if (!ballObject) return;
-                    const radius = (ballObject.children[0] as THREE.Mesh).geometry.parameters
-                        .radius;
-                    const ballWorldPos = new THREE.Vector3();
-                    ballObject.getWorldPosition(ballWorldPos);
+                } else {
                     const distanceLeft = leftPos.distanceTo(ballWorldPos);
-                    console.log("radiusleft = " + radius);
-                    console.log("distanceleft = " + distanceLeft);
+
                     if (distanceLeft <= radius) {
-                        console.log("catchleft");
                         ballObject.userData.isExplosing = true;
                         hasCatchLeft.current = true;
+                        vibrateController(left, 1, 50);
+                        eventToRemove.push(i);
                     }
                 }
             }
         }
-        const rightSqueezeList = listenedEvent.current.filter(
-            (e) => e.actionDescription === "caught" && e.hand.isRightHand()
-        );
-        const leftSqueezeList = listenedEvent.current.filter(
-            (e) => e.actionDescription === "caught" && !e.hand.isRightHand()
-        );
 
-        for (let i = eventToRemove.length - 1; i > 0; i--) {
-            listenedEvent.current.splice(i, 1);
-        }
+        // Supprimer les événements traités (en ordre décroissant)
+        eventToRemove.sort((a, b) => b - a);
+        eventToRemove.forEach((index) => {
+            listenedEvent.current.splice(index, 1);
+        });
     });
 
     return <></>;

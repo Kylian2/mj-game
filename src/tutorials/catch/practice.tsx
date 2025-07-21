@@ -6,7 +6,7 @@ import { useXRInputSourceState } from "@react-three/xr";
 
 // Utilities
 import mergeRefs from "merge-refs";
-import { useEffect, useRef, useState, type Dispatch } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 // Three.js
 import * as THREE from "three";
@@ -32,6 +32,7 @@ import {
 } from "musicaljuggling";
 import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
+import { CatchChecker } from "../../utilities/catchChecker";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -55,8 +56,8 @@ const pattern: JugglingPatternRaw = {
                     "0",
                     {
                         tempo: "1",
-                        hands: [["Do"], []],
-                        pattern: "L300"
+                        hands: [[], ["Do"]],
+                        pattern: "R202020300300300202020111"
                     }
                 ]
             ]
@@ -65,10 +66,10 @@ const pattern: JugglingPatternRaw = {
     musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
 };
 
-export function TossLeft({ change }: { change: Dispatch<SetStateAction<string>> }) {
+export function CatchPractice({ change }: { change: Dispatch<SetStateAction<string>> }) {
     const [model, setModel] = useState(() => patternToModel(pattern));
 
-    const [ballsData] = useState([{ id: "Do?K", color: "red" }]);
+    const [ballsData] = useState([{ id: "Do?K", color: "orange" }]);
 
     const [jugglersData] = useState([{ name: "Jean", position: [-1, 0, 0] }]);
 
@@ -114,22 +115,8 @@ export function TossLeft({ change }: { change: Dispatch<SetStateAction<string>> 
         [
             2,
             {
-                congratulations: ["Genial ! On peut encore accelerer"],
-                speed: 0.5
-            }
-        ],
-        [
-            3,
-            {
-                congratulations: ["Vous etes au top ! Vitesse reelle maintenant"],
-                speed: 0.8
-            }
-        ],
-        [
-            4,
-            {
                 congratulations: ["Impressionnant !"],
-                speed: 1.0
+                speed: 0.5
             }
         ]
     ]);
@@ -182,12 +169,14 @@ export function TossLeft({ change }: { change: Dispatch<SetStateAction<string>> 
 
         await wait(1500);
 
-        if (level.current + 1 <= 4) {
+        if (level.current + 1 <= 2) {
             console.log("Incrementation de level, avant = " + level.current);
             level.current++;
             console.log("Incrementation de level, apres = " + level.current);
         } else {
-            setText("Bravo ! Vous avez termine tous les niveaux !");
+            setText("Apprenons a rattraper les balles maintenant");
+            await wait(4000);
+            change("toss-introduction");
             return;
         }
 
@@ -440,7 +429,7 @@ export function TossLeft({ change }: { change: Dispatch<SetStateAction<string>> 
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
             <TextComponent text={text}></TextComponent>
-            <TossProgress
+            <CatchChecker
                 model={model}
                 clock={clock.current}
                 ballsRef={ballsRef}

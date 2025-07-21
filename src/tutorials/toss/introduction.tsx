@@ -102,10 +102,9 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
 
     const currentProgression = useRef(0);
     const texts = [
-        "Au moment de lancer la balle, un indicateur se remplit",
-        "En jeu, pour lancer la balle de la main droite il faut appuyer sur A",
-        "Et sur X pour lancer de la gauche",
-        "Si le timing de votre lancer est bon, vous verrez des particules autour de la balle",
+        "Au moment de lancer une balle, appuyez sur X (manette gauche), et A (manette droite)",
+        "Des fleches apparaitront et se coloreront en fonction du lancer",
+        "Suivez-les pour valider le lancer",
         "Appuyez sur B pour passer a la pratique"
     ];
 
@@ -128,7 +127,7 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
             currentProgression.current++;
             setText(texts[currentProgression.current]);
             if (currentProgression.current >= texts.length) {
-                change("toss-right");
+                change("toss-practice");
             }
             if (currentProgression.current >= 3) clock.current.pause();
         }
@@ -397,7 +396,7 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
 
     return (
         <>
-            <Performance
+            {/* <Performance
                 audio={true}
                 clock={clock.current}
                 performance={performance}
@@ -405,13 +404,7 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
             >
                 {jugglersData.map((elem) => mapJuggler(elem as BasicJugglerProps))}
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
-            </Performance>
-            <TossProgress
-                indicatorPosition={[2.5, 1.1, 0]}
-                model={model}
-                clock={clock.current}
-                ballsRef={ballsRef}
-            />
+            </Performance> */}
             <TextComponent text={text} subtext={subtext} />
         </>
     );

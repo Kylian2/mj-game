@@ -30,9 +30,9 @@ import {
     type JugglingPatternRaw,
     type BasicBallProps
 } from "musicaljuggling";
-import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
-import { CatchChecker } from "../../utilities/catchChecker";
+import { CatchChecker } from "../utilities/catchChecker";
+import { TossChecker } from "../utilities/tossChecker";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -57,7 +57,7 @@ const pattern: JugglingPatternRaw = {
                     {
                         tempo: "1",
                         hands: [[], ["Do"]],
-                        pattern: "R300"
+                        pattern: "R202020300300300202020111"
                     }
                 ]
             ]
@@ -66,7 +66,7 @@ const pattern: JugglingPatternRaw = {
     musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
 };
 
-export function CatchLeft({ change }: { change: Dispatch<SetStateAction<string>> }) {
+export function FullPratice({ change }: { change: Dispatch<SetStateAction<string>> }) {
     const [model, setModel] = useState(() => patternToModel(pattern));
 
     const [ballsData] = useState([{ id: "Do?K", color: "orange" }]);
@@ -115,22 +115,8 @@ export function CatchLeft({ change }: { change: Dispatch<SetStateAction<string>>
         [
             2,
             {
-                congratulations: ["Genial ! On peut encore accelerer"],
-                speed: 0.5
-            }
-        ],
-        [
-            3,
-            {
-                congratulations: ["Vous etes au top ! Vitesse reelle maintenant"],
-                speed: 0.8
-            }
-        ],
-        [
-            4,
-            {
                 congratulations: ["Impressionnant !"],
-                speed: 1.0
+                speed: 0.5
             }
         ]
     ]);
@@ -183,16 +169,13 @@ export function CatchLeft({ change }: { change: Dispatch<SetStateAction<string>>
 
         await wait(1500);
 
-        if (level.current + 1 <= 4) {
+        if (level.current + 1 <= 2) {
             console.log("Incrementation de level, avant = " + level.current);
             level.current++;
             console.log("Incrementation de level, apres = " + level.current);
         } else {
-            setText("Bravo ! Vous avez termine tous les niveaux !");
-            await wait(2000);
-            setText("Maintenant essayons de rattraper les balles");
-            await wait(2000);
-            change("toss-introduction");
+            setText("Bravo ! Vous avez fini les tutoriels !");
+            await wait(4000);
             return;
         }
 
@@ -446,6 +429,13 @@ export function CatchLeft({ change }: { change: Dispatch<SetStateAction<string>>
             </Performance>
             <TextComponent text={text}></TextComponent>
             <CatchChecker
+                model={model}
+                clock={clock.current}
+                ballsRef={ballsRef}
+                errorCount={errorCount}
+                setErrorText={setText}
+            />
+            <TossChecker
                 model={model}
                 clock={clock.current}
                 ballsRef={ballsRef}

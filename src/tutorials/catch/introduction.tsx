@@ -128,7 +128,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             currentProgression.current++;
             setText(texts[currentProgression.current]);
             if (currentProgression.current >= texts.length) {
-                change("catch-right");
+                change("catch-practice");
             }
             if (currentProgression.current >= 3) clock.current.pause();
         }

@@ -32,6 +32,8 @@ import {
 } from "musicaljuggling";
 import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
+import { WayDetector } from "../../utilities/wayDetector";
+import { TossChecker } from "../../utilities/tossChecker";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -56,7 +58,7 @@ const pattern: JugglingPatternRaw = {
                     {
                         tempo: "1",
                         hands: [[], ["Do"]],
-                        pattern: "R300"
+                        pattern: "R202020300300300202020111"
                     }
                 ]
             ]
@@ -65,7 +67,7 @@ const pattern: JugglingPatternRaw = {
     musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
 };
 
-export function TossRight({ change }: { change: Dispatch<SetStateAction<string>> }) {
+export function TossPractice({ change }: { change: Dispatch<SetStateAction<string>> }) {
     const [model, setModel] = useState(() => patternToModel(pattern));
 
     const [ballsData] = useState([{ id: "Do?K", color: "red" }]);
@@ -114,22 +116,8 @@ export function TossRight({ change }: { change: Dispatch<SetStateAction<string>>
         [
             2,
             {
-                congratulations: ["Genial ! On peut encore accelerer"],
+                congratulations: ["Impressionnant"],
                 speed: 0.5
-            }
-        ],
-        [
-            3,
-            {
-                congratulations: ["Vous etes au top ! Vitesse reelle maintenant"],
-                speed: 0.8
-            }
-        ],
-        [
-            4,
-            {
-                congratulations: ["Impressionnant !"],
-                speed: 1.0
             }
         ]
     ]);
@@ -182,14 +170,12 @@ export function TossRight({ change }: { change: Dispatch<SetStateAction<string>>
 
         await wait(1500);
 
-        if (level.current + 1 <= 4) {
+        if (level.current + 1 <= 2) {
             console.log("Incrementation de level, avant = " + level.current);
             level.current++;
             console.log("Incrementation de level, apres = " + level.current);
         } else {
-            setText("Vous maitrisez la main droite, passons à la main gauche !");
-            await wait(4000);
-            change("toss-left");
+            setText("Bravo ! On peut maintenant mixer lancers et rattrapers !");
             return;
         }
 
@@ -442,7 +428,7 @@ export function TossRight({ change }: { change: Dispatch<SetStateAction<string>>
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
             <TextComponent text={text}></TextComponent>
-            <TossProgress
+            <TossChecker
                 model={model}
                 clock={clock.current}
                 ballsRef={ballsRef}
