@@ -66,49 +66,51 @@ const pattern: JugglingPatternRaw = {
     musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
 };
 
-function wait(ms: number) {
-    new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<string>> }) {
     const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
-
     const referenceSpace = gl.xr.getReferenceSpace();
 
+    // Model's definition
     const [model, setModel] = useState(() => patternToModel(pattern));
-
     const [ballsData] = useState([{ id: "Do?K", color: "orange" }]);
-
     const [jugglersData] = useState([{ name: "Jean", position: [-1, 0, 0] }]);
 
+    // Clock settings, set clock's bounds in function of model's duration
     let [start, end] = model.patternTimeBounds();
     if (!end) end = 15;
     const clock = useRef<Clock>(new Clock({ bounds: [0, end] }));
+
+    // At the begining set playbackrate and make the clock playing in loop.
     useEffect(() => {
         clock.current.setPlaybackRate(0.35);
         clock.current.play();
         clock.current.setLoop(true);
     }, []);
 
+    // Initialize a performance with the actual model and clock
     const [performance, setPerformance] = useState(
         () => new PerformanceView({ model: model, clock: clock.current })
     );
 
+    // Data structure where the balls, curves and jugglers will be stored.
+    // When data is store we can access it by doing `ballsRef.current.get(ballid)`.
     const ballsRef = useRef(new Map<string, THREE.Object3D>());
     const curvesRef = useRef(new Map<string, THREE.Line>());
     const jugglersRef = useRef(
         new Map<string, { leftHand: THREE.Object3D | null; rightHand: THREE.Object3D | null }>()
     );
 
+    // Store tutorial's texts, and it's progression.
     const currentProgression = useRef(0);
     const texts = [
         "Pour rattraper une balle, il faut appuyer sur les boutons lateraux des manettes",
-        "Utilisez le bouton droit pour attraper à droite, et le bouton gauche pour attraper à gauche",
+        "Utilisez le bouton droit pour attraper a droite, et le bouton gauche pour attraper a gauche",
         "Vous pouvez vous aider de la previsualisation de la trajectoire de la balle pour anticiper les rattrapers",
         "Si vous reussissez a attraper la balle, vous verrez des particules autour de la balle",
         "Appuyez sur B pour passer a la pratique"
     ];
 
+    // Texts for adapt subtitles in case user is using controllers or hands
     const subtexts = {
         hand: "Pincer l'index pour avancer, pincer le majeur pour reculer",
         controller: "Appuyer sur B pour avancer, sur Y pour reculer"
@@ -122,6 +124,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
     const clickCount = useRef(0);
     const explosionCount = useRef(0);
 
+    // Function to execute when a OK pinch is detected
     const handleOK = () => {
         if (Math.abs(clickCount.current - tickcount.current) > 100) {
             clickCount.current = tickcount.current;
@@ -134,6 +137,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
         }
     };
 
+    // Function to execute when a Cancel pinch is detected
     const handleCancel = () => {
         if (Math.abs(clickCount.current - tickcount.current) > 100) {
             if (currentProgression.current - 1 >= 0) {
@@ -145,13 +149,17 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
         }
     };
 
+    // Variables to get hands access
     const [handState, setHandState] = useState<HandState>();
     const handSourceRight = useXRInputSourceState("hand", "right");
     const rightHand = handSourceRight?.inputSource?.hand;
     const handSourceLeft = useXRInputSourceState("hand", "left");
     const leftHand = handSourceLeft?.inputSource?.hand;
 
+    // Initialize hand action detector (to detect pinch, middle pinch and hand closure or opening)
+    // The section is executed when left hand or right hand have a change
     useEffect(() => {
+        //We create a HandState in function of which hand is "connected"
         if (leftHand && rightHand) {
             setHandState(new HandState({ leftHand: leftHand, rightHand: rightHand }));
         } else if (leftHand) {
@@ -168,10 +176,12 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
         }
         setSubtext(subtexts.hand);
 
+        // A simple pinch is associated to a OK action
         handState.addEventListener("pinch", (e: HandActionEvent) => {
             handleOK();
         });
 
+        // A midde pinch is associated to a Cancel action
         handState.addEventListener("pinch-middle", (e: HandActionEvent) => {
             handleCancel();
         });
@@ -181,11 +191,13 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
         };
     }, [handState]);
 
+    // The section below is executed at each frame
     useFrame((state, delta, frame) => {
-        handState?.update(frame, referenceSpace);
+        handState?.update(frame, referenceSpace); //First we update the handState to detect if hand actions
 
         const time = performance.getClock().getTime();
 
+        // This part update ball's position and curve
         for (const [id, ballView] of performance.balls) {
             let { model, curvePoints } = ballView;
             const ballObject = ballsRef.current.get(id);
@@ -221,6 +233,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
                     } catch (e) {}
                 }
 
+                // We convert position from world to local referential (THIS MUST BE FIXED IN A CLEANER WAY IN THE LIB)
                 const localPos = o.worldToLocal(pos.clone());
                 ballObject.position.copy(localPos);
                 animation(ballObject);
@@ -232,6 +245,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             const jugglerObject = jugglersRef.current.get(name);
             const jugglerPos = performance.jugglers.get(name)?.position;
             if (jugglerObject !== undefined) {
+                // Left hand
                 if (jugglerObject.leftHand !== null) {
                     const o = new THREE.Object3D();
                     if (performance.position) {
@@ -241,9 +255,12 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
                             performance.position[2] + jugglerPos[2]
                         );
                     }
+
+                    // We convert position from world to local referential (THIS MUST BE FIXED IN A CLEANER WAY IN THE LIB)
                     const localPos = o.worldToLocal(model.leftHand.position(time).clone());
                     jugglerObject.leftHand.position.copy(localPos);
                 }
+                //Right hand
                 if (jugglerObject.rightHand !== null) {
                     const o = new THREE.Object3D();
                     if (performance.position) {
@@ -253,13 +270,15 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
                             performance.position[2] + jugglerPos[2]
                         );
                     }
+
+                    // We convert position from world to local referential (THIS MUST BE FIXED IN A CLEANER WAY IN THE LIB)
                     const localPos = o.worldToLocal(model.rightHand.position(time).clone());
                     jugglerObject.rightHand.position.copy(localPos);
                 }
             }
         }
 
-        // Gestion du bouton B
+        // We can also interact with button (in case controllers are connected instead of hands)
         const rightB = rightController?.gamepad?.["b-button"]?.button;
         const leftY = leftController?.gamepad?.["y-button"]?.button;
         if (rightB) {
@@ -269,6 +288,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             handleCancel();
         }
 
+        // Only if currentProgression is equal or greated than 3 we put particul effect (to illustrate the text)
         if (currentProgression.current >= 3) {
             const ball = ballsRef.current.get("Do?K");
             if (ball && Math.abs(explosionCount.current - tickcount.current) > 70) {
@@ -331,11 +351,14 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
                         <sphereGeometry args={[radius, widthSegments, heightSegments]} />
                         <meshBasicMaterial color={color} />
                     </mesh>
+                    {/* Those points are used for particules effect */}
                     <points>
                         <sphereGeometry args={[radius - 0.05, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>
+
+                {/* Curve */}
                 <mesh
                     ref={mergeRefs((elem) => {
                         if (elem === null) {
@@ -411,6 +434,9 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
     );
 }
 
+/**
+ * Component to display text and subtext
+ */
 function TextComponent({ text, subtext }: { text: string; subtext: string }) {
     return (
         <group position={[3.5, 1.3, 0]} rotation={[0, -Math.PI / 2, 0]}>
@@ -426,6 +452,9 @@ function TextComponent({ text, subtext }: { text: string; subtext: string }) {
     );
 }
 
+/**
+ * Explosion animation function, update animation progression at each frame (must be called at each frame)
+ */
 function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
     const points = ballObject.children[1] as THREE.Points;
 

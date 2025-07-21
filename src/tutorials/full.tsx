@@ -67,23 +67,27 @@ const pattern: JugglingPatternRaw = {
 };
 
 export function FullPratice({ change }: { change: Dispatch<SetStateAction<string>> }) {
+    // Model's definition
     const [model, setModel] = useState(() => patternToModel(pattern));
-
     const [ballsData] = useState([{ id: "Do?K", color: "orange" }]);
-
     const [jugglersData] = useState([{ name: "Jean", position: [-1, 0, 0] }]);
 
+    // Clock settings, set clock's bounds in function of model's duration
     let [start, end] = model.patternTimeBounds();
     if (!end) end = 15;
     const clock = useRef<Clock>(new Clock({ bounds: [0, end] }));
+    // Set playbackrate
     useEffect(() => {
         clock.current.setPlaybackRate(0.3);
     }, []);
 
+    // Initialize a performance with the actual model and clock
     const [performance, setPerformance] = useState(
         () => new PerformanceView({ model: model, clock: clock.current })
     );
 
+    // Data structure where the balls, curves and jugglers will be stored.
+    // When data is store we can access it by doing `ballsRef.current.get(ballid)`.
     const ballsRef = useRef(new Map<string, THREE.Object3D>());
     const curvesRef = useRef(new Map<string, THREE.Line>());
     const jugglersRef = useRef(
@@ -95,9 +99,12 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
     const Bcount = useRef(0);
     const [text, setText] = useState("Appuyez sur B pour commencer");
 
-    const level = useRef(1);
-    const errorCount = useRef(0);
+    // Variables for levels informations
+    const level = useRef(1); // Current level
+    const errorCount = useRef(0); //Error count made during practice
 
+    // Levels informations, congratulations are text displayed after the level's completion
+    // and speed is the playback rate for the level
     const levelsInformations = new Map<
         number,
         {
@@ -121,10 +128,10 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
         ]
     ]);
 
-    // Fonction helper pour attendre
+    // Helper function to wait
     const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    // Fonction pour le countdown
+    // Helper function to make a countdown
     const countdown = async () => {
         setText("Preparez-vous");
         await wait(1000);
@@ -137,8 +144,9 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
         setText("Go !");
     };
 
+    // Function executed when a level is finished
     const nextLevel = async () => {
-        const infos = levelsInformations.get(level.current);
+        const infos = levelsInformations.get(level.current); // retrieve current level informations
         console.log("Passage de niveau (actuellement) = " + level.current);
         console.log(infos);
         if (!infos) {
@@ -146,6 +154,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
             return;
         }
 
+        // If there is error, we try again (level stay the same)
         if (errorCount.current > 0) {
             errorCount.current = 0;
             setText("Dommage, allez on reessaye");
@@ -159,7 +168,10 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
             return;
         }
 
-        errorCount.current = 0;
+        //If there is no error
+        errorCount.current = 0; //maybe be dispensable
+
+        //We display all congratulations texts
         for (let i = 0; i < infos.congratulations.length; i++) {
             setText(infos.congratulations[i]);
             if (i < infos.congratulations.length - 1) {
@@ -169,16 +181,19 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
 
         await wait(1500);
 
+        // If there is remaining level, we move on the next
         if (level.current + 1 <= 2) {
             console.log("Incrementation de level, avant = " + level.current);
             level.current++;
             console.log("Incrementation de level, apres = " + level.current);
         } else {
+            //Otherwise introduction is finished
             setText("Bravo ! Vous avez fini les tutoriels !");
             await wait(4000);
             return;
         }
 
+        // We set speed of next level
         const nextInfo = levelsInformations.get(level.current);
         if (!nextInfo) {
             console.warn("No information for level " + level.current);
@@ -197,7 +212,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
             console.log("reachedEnd");
             clock.current.setTime(0);
             clock.current.pause();
-            nextLevel();
+            nextLevel(); // nextLevel() is executed when clock reach end
         };
 
         clock.current.addEventListener("reachedEnd", handleReachedEnd);
@@ -207,9 +222,11 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
         };
     }, []);
 
+    //This section is executed on each frame
     useFrame(() => {
         const time = performance.getClock().getTime();
 
+        // This part update ball's position and curve
         for (const [id, ballView] of performance.balls) {
             let { model, curvePoints } = ballView;
             const ballObject = ballsRef.current.get(id);
@@ -245,6 +262,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                     } catch (e) {}
                 }
 
+                // We convert position from world to local referential (THIS MUST BE FIXED IN A CLEANER WAY IN THE LIB)
                 const localPos = o.worldToLocal(pos.clone());
                 ballObject.position.copy(localPos);
                 animation(ballObject);
@@ -265,6 +283,8 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                             performance.position[2] + jugglerPos[2]
                         );
                     }
+
+                    // We convert position from world to local referential (THIS MUST BE FIXED IN A CLEANER WAY IN THE LIB)
                     const localPos = o.worldToLocal(model.leftHand.position(time).clone());
                     jugglerObject.leftHand.position.copy(localPos);
                 }
@@ -277,13 +297,15 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                             performance.position[2] + jugglerPos[2]
                         );
                     }
+
+                    // We convert position from world to local referential (THIS MUST BE FIXED IN A CLEANER WAY IN THE LIB)
                     const localPos = o.worldToLocal(model.rightHand.position(time).clone());
                     jugglerObject.rightHand.position.copy(localPos);
                 }
             }
         }
 
-        // Gestion du bouton B
+        // Handle B button interaction
         const rightB = rightController?.gamepad?.["b-button"]?.button;
         if (rightB && Math.abs(Bcount.current - tickcount.current) > 200) {
             Bcount.current = tickcount.current;
@@ -446,6 +468,9 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
     );
 }
 
+/**
+ * Explosion animation function, update animation progression at each frame (must be called at each frame)
+ */
 function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
     const points = ballObject.children[1] as THREE.Points;
 
@@ -483,6 +508,9 @@ function animation(ballObject: THREE.Object3D<THREE.Object3DEventMap>) {
     return;
 }
 
+/**
+ * Component to display text
+ */
 function TextComponent({ text }: { text: string }) {
     return (
         <group position={[3.5, 1.3, 0]} rotation={[0, -Math.PI / 2, 0]}>

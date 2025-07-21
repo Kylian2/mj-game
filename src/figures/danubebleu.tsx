@@ -39,7 +39,6 @@ import {
 } from "musicaljuggling";
 import mergeRefs from "merge-refs";
 import { pattern } from "./patterns/pattern";
-import { HandDetector, scale } from "../utilities/handDetector";
 import { Root, Text } from "@react-three/uikit";
 //TODO : styles ?
 //TODO : clock optional for performance ?
@@ -461,7 +460,7 @@ function CanvasContent({
                     <Text backgroundColor={"white"}>{text}</Text>
                 </Root>
             </group>
-            <HandDetector
+            {/* <HandDetector
                 model={model}
                 ballsRef={ballsRef}
                 clock={clock}
@@ -472,7 +471,7 @@ function CanvasContent({
                         errorRef.current = true;
                     }
                 }}
-            />
+            /> */}
         </>
     );
 }

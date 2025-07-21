@@ -13,6 +13,17 @@ import { Clock, PerformanceModel, Alerts, AlertsTimeline } from "musicaljuggling
 import { type AlertEvent } from "musicaljuggling";
 import { WayDetector } from "./wayDetector";
 
+/**
+ * TossChecker Component
+ *
+ * This component is responsible for monitoring and validating toss events.
+ *
+ * @param clock - Time management system for synchronization
+ * @param ballsRef - Reference to a Map containing all ball objects in the scene
+ * @param model - Performance model containing juggling patterns and timelines
+ * @param errorCount - Optional reference to track the number of failed tosses
+ * @param setErrorText - Optional function to display error messages to the user
+ */
 export function TossChecker({
     clock,
     ballsRef,
@@ -26,31 +37,49 @@ export function TossChecker({
     errorCount?: RefObject<number>;
     setErrorText?: Dispatch<SetStateAction<string>>;
 }) {
+    // State to track the expected siteswap height for the left hand's next toss
+    // undefined means no toss is currently expected for this hand
     const [incomingSiteswapLeft, setIncomingSiteswapLeft] = useState<number | undefined>(undefined);
+
+    // State to track the expected siteswap height for the right hand's next toss
+    // undefined means no toss is currently expected for this hand
     const [incomingSiteswapRight, setIncomingSiteswapRight] = useState<number | undefined>(
         undefined
     );
 
+    //Initialize alert system
     useEffect(() => {
+        // Create a timeline that aggregates all ball timelines with a 0.2 second interval
         const alertesTimeline = new AlertsTimeline();
         model.balls.forEach((ball) => {
             alertesTimeline.addTimeline(ball.timeline, 0.2);
         });
 
+        // Create the alerts system that will fire events based on the timeline
         let alertes = new Alerts(alertesTimeline, clock);
 
+        /**
+         * "inf" Event Handler - Triggered when a toss window begins
+         *
+         * This event fires slightly before the actual toss should happen,
+         * activating the motion detection system for the appropriate hand.
+         * The siteswap height determines the expected throw trajectory.
+         */
         alertes.addEventListener("inf", (e: AlertEvent) => {
             if (e.actionDescription === "tossed") {
+                // Set up right hand toss detection
                 if (e.hand.isRightHand()) {
                     setIncomingSiteswapRight(e.siteswapHeight);
                 }
 
+                // Set up left hand toss detection
                 if (!e.hand.isRightHand()) {
                     setIncomingSiteswapLeft(e.siteswapHeight);
                 }
             }
         });
 
+        // Cleanup function to remove event listeners when component unmounts
         return () => {
             alertes.removeAllEventListeners();
         };
@@ -59,11 +88,22 @@ export function TossChecker({
     const left = useXRInputSourceState("controller", "left");
     const right = useXRInputSourceState("controller", "right");
 
+    /**
+     * Vibrate Controller Function
+     *
+     * Provides haptic feedback to the user. Currently unused in this component
+     * but available for future enhancements (e.g., feedback on successful tosses).
+     *
+     * @param controller - The XR controller state object
+     * @param intensity - Vibration intensity
+     * @param duration - Vibration duration in milliseconds
+     */
     const vibrateController = (
         controller: XRControllerState | undefined,
         intensity = 1.0,
         duration = 100
     ) => {
+        // Check if controller and gamepad are available
         if (!controller || !controller.inputSource || !controller.inputSource.gamepad) {
             console.log("exit");
             return;
@@ -74,24 +114,39 @@ export function TossChecker({
         }
     };
 
-    let score = 0;
-
-    useFrame(() => {});
-
+    /**
+     * Success Callback for Left Hand
+     *
+     * Called by the left WayDetector when a successful toss motion is detected.
+     * Resets the expected siteswap to undefined, indicating no toss is currently expected.
+     */
     const successLeft = () => {
         setIncomingSiteswapLeft(undefined);
     };
 
+    /**
+     * Success Callback for Right Hand
+     *
+     * Called by the right WayDetector when a successful toss motion is detected.
+     * Resets the expected siteswap to undefined, indicating no toss is currently expected.
+     */
     const successRight = () => {
         setIncomingSiteswapRight(undefined);
     };
 
+    /**
+     * Error Callback
+     *
+     * Called by either WayDetector when a toss motion fails validation.
+     * Increments the error counter if available.
+     */
     const error = () => {
         if (errorCount) errorCount.current++;
     };
 
     return (
         <>
+            {/* Right Hand Motion Detection */}
             {right && (
                 <WayDetector
                     controller={right}
@@ -100,6 +155,8 @@ export function TossChecker({
                     onError={error}
                 />
             )}
+
+            {/* Left Hand Motion Detection */}
             {left && (
                 <WayDetector
                     controller={left}
