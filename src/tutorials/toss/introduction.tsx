@@ -30,7 +30,6 @@ import {
     type JugglingPatternRaw,
     type BasicBallProps
 } from "musicaljuggling";
-import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
 import { HandState, type HandActionEvent } from "../../utilities/handState";
 

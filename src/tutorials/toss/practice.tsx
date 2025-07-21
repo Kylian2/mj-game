@@ -27,12 +27,9 @@ import {
     patternToModel,
     PerformanceView,
     type BasicJugglerProps,
-    type JugglingPatternRaw,
-    type BasicBallProps
+    type JugglingPatternRaw
 } from "musicaljuggling";
-import { TossProgress } from "../../utilities/tossProgress";
 import { Root, Text } from "@react-three/uikit";
-import { WayDetector } from "../../utilities/wayDetector";
 import { TossChecker } from "../../utilities/tossChecker";
 
 extend({ LineMaterial, LineGeometry });
