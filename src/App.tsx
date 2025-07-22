@@ -12,6 +12,7 @@ import { DanubeBleu } from "./scenes/danubebleu";
 import { WebGLRenderer } from "three";
 import { DanubeBleuFigure } from "./figures/danubebleu";
 import { Tutorial } from "./scenes/tutorial";
+import { ThreeBallsScene } from "./scenes/threeBalls";
 
 const store = createXRStore();
 
@@ -78,6 +79,7 @@ export default function App() {
                     {scene === "home" && <HomeScene scene={[scene, setScene]} />}
                     {scene === "tutorial" && <Tutorial scene={[scene, setScene]} />}
                     {scene === "danubebleu" && <DanubeBleu scene={[scene, setScene]} />}
+                    {scene === "three-balls" && <ThreeBallsScene scene={[scene, setScene]} />}
 
                     <FlyPlayer xrOrigin={xrOrigin} />
                     <RotatePlayer />

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { XRControllerState } from "@react-three/xr";
+import type { useXRInputSourceState, XRControllerState, XRHandsState } from "@react-three/xr";
 
 /**
  * Arrow Component
@@ -147,10 +147,10 @@ export function WayDetector({
     onError: Function;
 }) {
     // Position where the arrows are anchored (updated on button press)
-    const [pos, setPos] = useState(new THREE.Vector3(0, 2, 0));
+    const [pos, setPos] = useState(new THREE.Vector3(0, 0, 0));
 
     // Button state tracking (true = pressed, false = released)
-    const [button, setButton] = useState(true);
+    const [button, setButton] = useState(false);
 
     // Track which hand this detector is for (left/right)
     const [hand, setHand] = useState(controller.inputSource.handedness);
@@ -173,33 +173,13 @@ export function WayDetector({
      * The arrows are repositioned each time the user presses the button,
      * allowing them to set up the toss guidance at their current hand position.
      */
-    useFrame(() => {
+    useEffect(() => {
         if (controller) {
-            // Get appropriate button state based on hand
-            const buttonIsPressed =
-                hand === "right"
-                    ? controller.gamepad?.["a-button"]?.button
-                    : controller.gamepad?.["x-button"]?.button;
-
-            if (button) {
-                // If button was pressed in the last frame and it's not pressed on this frame then set is to false
-
-                // FIX NEEDED : Why not doing this setButton(buttonIsPressed)
-                if (!buttonIsPressed) {
-                    setButton(false);
-                }
-            } else {
-                // If button wasn't pressed in the last frame and now it pressed then it just pressed and we can set the arrows positions
-                if (buttonIsPressed) {
-                    // Button just pressed - update arrow position to current controller position
-                    const position = new THREE.Vector3();
-                    controller?.object?.getWorldPosition(position);
-                    setPos(position);
-                    setButton(true);
-                }
-            }
+            const position = new THREE.Vector3();
+            controller?.object?.getWorldPosition(position);
+            setPos(position);
         }
-    });
+    }, [incomingSiteswap]);
 
     /**
      * Collision Handler
@@ -225,8 +205,8 @@ export function WayDetector({
     return (
         <>
             {/* Only render arrows when button is pressed */}
-            {button && (
-                <>
+            {true && (
+                <group>
                     {/* Siteswap 1 Arrow - Horizontal toss (hand to hand) */}
                     <Arrow
                         color="yellow"
@@ -240,31 +220,63 @@ export function WayDetector({
                     />
 
                     {/* Siteswap 3 Arrow - Cross toss (to opposite hand) */}
-                    <Arrow
-                        color="lightblue"
-                        length={0.15}
-                        origin={pos}
-                        rotation={
-                            new THREE.Euler(((hand === "right" ? -3 : -1) * Math.PI) / 4, 0, 0)
-                        }
-                        controller={controller}
-                        detectionIncoming={incomingSiteswap}
-                        siteswap={3}
-                        onCollision={handleCollision}
-                    />
+                    {incomingSiteswap !== 5 && (
+                        <Arrow
+                            color="lightblue"
+                            length={0.15}
+                            origin={pos}
+                            rotation={
+                                new THREE.Euler(((hand === "right" ? -3 : -1) * Math.PI) / 4, 0, 0)
+                            }
+                            controller={controller}
+                            detectionIncoming={incomingSiteswap}
+                            siteswap={3}
+                            onCollision={handleCollision}
+                        />
+                    )}
+
+                    {/* Siteswap 5 Arrow */}
+                    {incomingSiteswap !== 3 && (
+                        <Arrow
+                            color="pink"
+                            length={0.25}
+                            origin={pos}
+                            rotation={
+                                new THREE.Euler(((hand === "right" ? -2 : -1) * Math.PI) / 3, 0, 0)
+                            }
+                            controller={controller}
+                            detectionIncoming={incomingSiteswap}
+                            siteswap={5}
+                            onCollision={handleCollision}
+                        />
+                    )}
 
                     {/* Siteswap 2 Arrow - Vertical toss */}
+                    {incomingSiteswap !== 4 && (
+                        <Arrow
+                            color="lightgreen"
+                            length={0.15}
+                            origin={pos}
+                            rotation={new THREE.Euler(-Math.PI / 2, 0, 0)}
+                            controller={controller}
+                            detectionIncoming={incomingSiteswap}
+                            siteswap={2}
+                            onCollision={handleCollision}
+                        />
+                    )}
+
+                    {/* Siteswap 4 Arrow */}
                     <Arrow
-                        color="lightgreen"
-                        length={0.15}
+                        color="green"
+                        length={0.25}
                         origin={pos}
                         rotation={new THREE.Euler(-Math.PI / 2, 0, 0)}
                         controller={controller}
                         detectionIncoming={incomingSiteswap}
-                        siteswap={2}
+                        siteswap={4}
                         onCollision={handleCollision}
                     />
-                </>
+                </group>
             )}
         </>
     );
