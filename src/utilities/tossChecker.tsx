@@ -23,19 +23,22 @@ import { WayDetector } from "./wayDetector";
  * @param model - Performance model containing juggling patterns and timelines
  * @param errorCount - Optional reference to track the number of failed tosses
  * @param setErrorText - Optional function to display error messages to the user
+ * @param makeStop - Optionnal, if true then figure will stop at toss moments
  */
 export function TossChecker({
     clock,
     ballsRef,
     model,
     errorCount,
-    setErrorText
+    setErrorText,
+    makeStop
 }: {
     clock: Clock;
     ballsRef: RefObject<Map<string, THREE.Object3D<THREE.Object3DEventMap>>>;
     model: PerformanceModel;
     errorCount?: RefObject<number>;
     setErrorText?: Dispatch<SetStateAction<string>>;
+    makeStop?: boolean;
 }) {
     // State to track the expected siteswap height for the left hand's next toss
     // undefined means no toss is currently expected for this hand
@@ -49,35 +52,57 @@ export function TossChecker({
 
     //Initialize alert system
     useEffect(() => {
-        // Create a timeline that aggregates all ball timelines with a 0.2 second interval
+        // Create a timeline that aggregates all ball timelines with a 0/0.2 second interval
         const alertesTimeline = new AlertsTimeline();
         model.balls.forEach((ball) => {
-            alertesTimeline.addTimeline(ball.timeline, 0.2);
+            alertesTimeline.addTimeline(ball.timeline, makeStop ? 0 : 0.2);
         });
 
         // Create the alerts system that will fire events based on the timeline
         let alertes = new Alerts(alertesTimeline, clock);
 
-        /**
-         * "inf" Event Handler - Triggered when a toss window begins
-         *
-         * This event fires slightly before the actual toss should happen,
-         * activating the motion detection system for the appropriate hand.
-         * The siteswap height determines the expected throw trajectory.
-         */
-        alertes.addEventListener("inf", (e: AlertEvent) => {
-            if (e.actionDescription === "tossed") {
-                // Set up right hand toss detection
-                if (e.hand.isRightHand()) {
-                    setIncomingSiteswapRight(e.siteswapHeight);
-                }
+        if (!makeStop) {
+            /**
+             * "inf" Event Handler - Triggered when a toss window begins
+             *
+             * This event fires slightly before the actual toss should happen,
+             * activating the motion detection system for the appropriate hand.
+             * The siteswap height determines the expected throw trajectory.
+             */
+            alertes.addEventListener("inf", (e: AlertEvent) => {
+                if (e.actionDescription === "tossed") {
+                    // Set up right hand toss detection
+                    if (e.hand.isRightHand()) {
+                        setIncomingSiteswapRight(e.siteswapHeight);
+                    }
 
-                // Set up left hand toss detection
-                if (!e.hand.isRightHand()) {
-                    setIncomingSiteswapLeft(e.siteswapHeight);
+                    // Set up left hand toss detection
+                    if (!e.hand.isRightHand()) {
+                        setIncomingSiteswapLeft(e.siteswapHeight);
+                    }
                 }
-            }
-        });
+            });
+        }
+
+        // If we make the figure stop at each event then we don't need a window to do our actions
+        if (makeStop) {
+            /**
+             * "instant" Event Handler - Triggered when a ball need to be tossed
+             */
+            alertes.addEventListener("instant", (e: AlertEvent) => {
+                if (e.actionDescription === "tossed") {
+                    if (e.hand.isRightHand()) {
+                        setIncomingSiteswapRight(e.siteswapHeight);
+                    }
+
+                    if (!e.hand.isRightHand()) {
+                        setIncomingSiteswapLeft(e.siteswapHeight);
+                    }
+
+                    clock.pause();
+                }
+            });
+        }
 
         // Cleanup function to remove event listeners when component unmounts
         return () => {
@@ -122,6 +147,7 @@ export function TossChecker({
      */
     const successLeft = () => {
         setIncomingSiteswapLeft(undefined);
+        if (makeStop) clock.play();
     };
 
     /**
@@ -132,6 +158,7 @@ export function TossChecker({
      */
     const successRight = () => {
         setIncomingSiteswapRight(undefined);
+        if (makeStop) clock.play();
     };
 
     /**

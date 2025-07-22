@@ -102,8 +102,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
     // Store tutorial's texts, and it's progression.
     const currentProgression = useRef(0);
     const texts = [
-        "Pour rattraper une balle, il faut appuyer sur les boutons lateraux des manettes",
-        "Utilisez le bouton droit pour attraper a droite, et le bouton gauche pour attraper a gauche",
+        "Pour rattraper une balle, il faut placer sa main de façon a entrer en collision avec elle",
         "Vous pouvez vous aider de la previsualisation de la trajectoire de la balle pour anticiper les rattrapers",
         "Si vous reussissez a attraper la balle, vous verrez des particules autour de la balle",
         "Appuyez sur B pour passer a la pratique"
@@ -170,10 +169,10 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
 
     useEffect(() => {
         if (!handState) {
-            setSubtext(subtexts.controller);
+            //     setSubtext(subtexts.controller);
             return;
         }
-        setSubtext(subtexts.hand);
+        // setSubtext(subtexts.hand);
 
         // A simple pinch is associated to a OK action
         handState.addEventListener("pinch", (e: HandActionEvent) => {

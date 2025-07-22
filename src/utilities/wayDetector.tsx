@@ -87,9 +87,10 @@ function Arrow({
 
     // Visual indication: highlight the arrow if it matches the expected siteswap
     const currentOpacity = siteswap === detectionIncoming ? 0.8 : 0.2;
+    const currentVisibility = siteswap === detectionIncoming;
 
     return (
-        <group position={origin} rotation={rotation}>
+        <group position={origin} rotation={rotation} visible={currentVisibility}>
             {/* Arrow Body */}
             <mesh position={[0, 0, bodyLength - headLength]} rotation={[Math.PI / 2, 0, 0]}>
                 <cylinderGeometry args={[bodyRadius, bodyRadius, bodyLength, 16]} />

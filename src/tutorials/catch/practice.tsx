@@ -455,6 +455,7 @@ export function CatchPractice({ change }: { change: Dispatch<SetStateAction<stri
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
+                makeStop={true}
             />
         </>
     );

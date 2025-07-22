@@ -173,10 +173,10 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
 
     useEffect(() => {
         if (!handState) {
-            setSubtext(subtexts.controller);
+            //     setSubtext(subtexts.controller);
             return;
         }
-        setSubtext(subtexts.hand);
+        // setSubtext(subtexts.hand);
 
         // A simple pinch is associated to a OK action
         handState.addEventListener("pinch", (e: HandActionEvent) => {

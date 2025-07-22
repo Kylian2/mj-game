@@ -149,7 +149,7 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
         );
     }
 
-    const [tutorial, setTutorial] = useState("toss-introduction");
+    const [tutorial, setTutorial] = useState("catch-introduction");
 
     return (
         <group>

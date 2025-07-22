@@ -456,6 +456,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
+                makeStop={true}
             />
             <TossChecker
                 model={model}
@@ -463,6 +464,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
+                makeStop={true}
             />
         </>
     );

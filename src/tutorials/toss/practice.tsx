@@ -186,7 +186,8 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
             console.log("Incrementation de level, apres = " + level.current);
         } else {
             //Otherwise we move on the full practice
-            setText("Bravo ! On peut maintenant mixer lancers et rattrapers !");
+            setText("Bravo ! On peut maintenant mixer lancers et rattrapes !");
+            wait(2000);
             change("full-practice");
             return;
         }
@@ -453,6 +454,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
+                makeStop={true}
             />
         </>
     );

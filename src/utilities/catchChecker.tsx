@@ -16,19 +16,22 @@ import { Box } from "@react-three/drei";
  * @param model - Performance model containing juggling patterns and timelines
  * @param errorCount - Optional reference to track the number of missed catches
  * @param setErrorText - Optional function to display error messages to the user
+ * @param makeStop - Optionnal, if true then the figure will stop at catch moments
  */
 export function CatchChecker({
     clock,
     ballsRef,
     model,
     errorCount,
-    setErrorText
+    setErrorText,
+    makeStop
 }: {
     clock: Clock;
     ballsRef: RefObject<Map<string, THREE.Object3D<THREE.Object3DEventMap>>>;
     model: PerformanceModel;
     errorCount?: RefObject<number>;
     setErrorText?: Dispatch<SetStateAction<string>>;
+    makeStop?: boolean;
 }) {
     // Array to store catch events that are currently monitored
     const listenedEvent = useRef<Array<AlertEvent>>([]);
@@ -39,71 +42,95 @@ export function CatchChecker({
 
     // Initializes the alert system for monitoring catch events
     useEffect(() => {
-        // Create a timeline that aggregates all ball timelines with a 0.2 second interval
+        // Create a timeline that aggregates all ball timelines with a 0.2/0 second interval
         const alertesTimeline = new AlertsTimeline();
         model.balls.forEach((ball) => {
-            alertesTimeline.addTimeline(ball.timeline, 0.2);
+            alertesTimeline.addTimeline(ball.timeline, makeStop ? 0 : 0.2);
         });
 
         // Create the alerts system that will fire events based on the timeline
         let alertes = new Alerts(alertesTimeline, clock);
 
-        /**
-         * "inf" Event Handler - Triggered when a catch window begins
-         * This event fires slightly before the actual catch should happen,
-         * giving the system time to prepare for validation
-         */
-        alertes.addEventListener("inf", (e: AlertEvent) => {
-            if (e.actionDescription === "caught") {
-                // Add this catch event to our monitoring list
-                listenedEvent.current.push(e);
+        if (!makeStop) {
+            /**
+             * "inf" Event Handler - Triggered when a catch window begins
+             * This event fires slightly before the actual catch should happen,
+             * giving the system time to prepare for validation
+             */
+            alertes.addEventListener("inf", (e: AlertEvent) => {
+                if (e.actionDescription === "caught") {
+                    // Add this catch event to our monitoring list
+                    listenedEvent.current.push(e);
 
-                // Reset the catch flag for the appropriate hand
-                // This ensures we don't carry over success from previous catches
-                if (e.hand.isRightHand()) {
-                    hasCatchRight.current = false;
-                } else {
-                    hasCatchLeft.current = false;
+                    // Reset the catch flag for the appropriate hand
+                    // This ensures we don't carry over success from previous catches
+                    if (e.hand.isRightHand()) {
+                        hasCatchRight.current = false;
+                    } else {
+                        hasCatchLeft.current = false;
+                    }
                 }
-            }
-        });
+            });
 
-        /**
-         * "sup" Event Handler - Triggered when a catch window ends
-         * This event fires when the catch should have been completed.
-         * If the catch flag is still false, it means the user missed the catch.
-         */
-        alertes.addEventListener("sup", (e: AlertEvent) => {
-            // Check if right hand catch was missed
-            if (
-                e.actionDescription === "caught" &&
-                e.hand.isRightHand() &&
-                !hasCatchRight.current
-            ) {
-                if (errorCount) errorCount.current++;
-                if (setErrorText) {
-                    setErrorText("Vous n'avez pas rattrapé la balle à droite");
+            /**
+             * "sup" Event Handler - Triggered when a catch window ends
+             * This event fires when the catch should have been completed.
+             * If the catch flag is still false, it means the user missed the catch.
+             */
+            alertes.addEventListener("sup", (e: AlertEvent) => {
+                // Check if right hand catch was missed
+                if (
+                    e.actionDescription === "caught" &&
+                    e.hand.isRightHand() &&
+                    !hasCatchRight.current
+                ) {
+                    if (errorCount) errorCount.current++;
+                    if (setErrorText) {
+                        setErrorText("Vous n'avez pas rattrapé la balle à droite");
+                    }
                 }
-            }
 
-            // Check if left hand catch was missed
-            if (
-                e.actionDescription === "caught" &&
-                !e.hand.isRightHand() &&
-                !hasCatchLeft.current
-            ) {
-                if (errorCount) errorCount.current++;
-                if (setErrorText) {
-                    setErrorText("Vous n'avez pas rattrapé la balle à gauche");
+                // Check if left hand catch was missed
+                if (
+                    e.actionDescription === "caught" &&
+                    !e.hand.isRightHand() &&
+                    !hasCatchLeft.current
+                ) {
+                    if (errorCount) errorCount.current++;
+                    if (setErrorText) {
+                        setErrorText("Vous n'avez pas rattrapé la balle à gauche");
+                    }
                 }
-            }
 
-            // Remove the processed event from our monitoring list
-            const index = listenedEvent.current.indexOf(e);
-            if (index > -1) {
-                listenedEvent.current.splice(index, 1);
-            }
-        });
+                // Remove the processed event from our monitoring list
+                const index = listenedEvent.current.indexOf(e);
+                if (index > -1) {
+                    listenedEvent.current.splice(index, 1);
+                }
+            });
+        }
+
+        // If we make the figure stop at each event then we don't need a window to do our actions
+        if (makeStop) {
+            /**
+             * "instant" Event Handler - Triggered when a ball need to be catched
+             */
+            alertes.addEventListener("instant", (e: AlertEvent) => {
+                if (e.actionDescription === "caught") {
+                    // Add this catch event to our monitoring list
+                    listenedEvent.current.push(e);
+
+                    // Reset the catch flag for the appropriate hand
+                    // This ensures we don't carry over success from previous catches
+                    if (e.hand.isRightHand()) {
+                        hasCatchRight.current = false;
+                    } else {
+                        hasCatchLeft.current = false;
+                    }
+                    clock.pause();
+                }
+            });
+        }
 
         // Cleanup function to remove event listeners when component unmounts
         return () => {
@@ -129,12 +156,17 @@ export function CatchChecker({
     ) => {
         // Check if controller and gamepad are available
         if (!controller || !controller.inputSource || !controller.inputSource.gamepad) {
-            console.log("exit");
+            console.warn("Impossible to vibrate on controller" + controller);
             return;
         }
         const gamepad = controller.inputSource.gamepad;
         if (gamepad.hapticActuators.length > 0) {
             gamepad.hapticActuators[0].pulse(intensity, duration);
+        } else {
+            console.warn(
+                "Haptic Actuators are not available on controller " +
+                    controller.inputSource.handedness
+            );
         }
     };
 
@@ -180,6 +212,7 @@ export function CatchChecker({
                         hasCatchRight.current = true; // Set success flag
                         vibrateController(right, 1, 50); // Provide haptic feedback
                         eventToRemove.push(i); // Mark event for removal
+                        if (makeStop) clock.play();
                     }
                 } else {
                     // Check collision with left controller
@@ -191,6 +224,7 @@ export function CatchChecker({
                         hasCatchLeft.current = true; // Set success flag
                         vibrateController(left, 1, 50); // Provide haptic feedback
                         eventToRemove.push(i); // Mark event for removal
+                        if (makeStop) clock.play();
                     }
                 }
             }
