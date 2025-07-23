@@ -33,6 +33,7 @@ import {
 import { Root, Text } from "@react-three/uikit";
 import { CatchChecker } from "../utilities/catchChecker";
 import { TossChecker } from "../utilities/tossChecker";
+import { TimeControls } from "../ui/TimeControls";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -474,6 +475,11 @@ export function ThreeBallPerformance() {
                 setErrorText={setText}
                 makeStop={true}
             />
+            <TimeControls
+                timeConductor={clock.current}
+                position={[3.5, 0.8, 0]}
+                rotation={[0, -Math.PI / 2, 0]}
+            ></TimeControls>
         </>
     );
 }
