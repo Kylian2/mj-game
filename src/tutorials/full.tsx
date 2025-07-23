@@ -33,6 +33,8 @@ import {
 import { Root, Text } from "@react-three/uikit";
 import { CatchChecker } from "../utilities/catchChecker";
 import { TossChecker } from "../utilities/tossChecker";
+import { FireworksSystem } from "../utilities/fireworks";
+import { DiscoSpotlight } from "../scenes/home";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -69,7 +71,7 @@ const pattern: JugglingPatternRaw = {
 export function FullPratice({ change }: { change: Dispatch<SetStateAction<string>> }) {
     // Model's definition
     const [model, setModel] = useState(() => patternToModel(pattern));
-    const [ballsData] = useState([{ id: "Do?K", color: "orange" }]);
+    const [ballsData] = useState([{ id: "Do?K", color: "purple" }]);
     const [jugglersData] = useState([{ name: "Jean", position: [-1, 0, 0] }]);
 
     // Clock settings, set clock's bounds in function of model's duration
@@ -115,18 +117,13 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
         [
             1,
             {
-                congratulations: ["Super ! Vous avez compris", "Essayons un peu plus vite"],
+                congratulations: ["Super ! Vous avez compris !"],
                 speed: 0.3
-            }
-        ],
-        [
-            2,
-            {
-                congratulations: ["Impressionnant !"],
-                speed: 0.5
             }
         ]
     ]);
+
+    const [hasFinished, setHasFinished] = useState(false);
 
     // Helper function to wait
     const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -182,14 +179,16 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
         await wait(1500);
 
         // If there is remaining level, we move on the next
-        if (level.current + 1 <= 2) {
+        if (level.current + 1 <= levelsInformations.size) {
             console.log("Incrementation de level, avant = " + level.current);
             level.current++;
             console.log("Incrementation de level, apres = " + level.current);
         } else {
             //Otherwise introduction is finished
             setText("Bravo ! Vous avez fini les tutoriels !");
-            await wait(4000);
+            setHasFinished(true);
+            await wait(12000);
+            change("finished");
             return;
         }
 
@@ -307,7 +306,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
 
         // Handle B button interaction
         const rightB = rightController?.gamepad?.["b-button"]?.button;
-        if (rightB && Math.abs(Bcount.current - tickcount.current) > 200) {
+        if (rightB && Math.abs(Bcount.current - tickcount.current) > 200 && !hasFinished) {
             Bcount.current = tickcount.current;
             if (clock.current.isPaused()) {
                 (async () => {
@@ -466,6 +465,30 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                 setErrorText={setText}
                 makeStop={true}
             />
+
+            <FireworksSystem isActive={hasFinished} position={new THREE.Vector3(4.2, 0, 1)} />
+            <FireworksSystem isActive={hasFinished} position={new THREE.Vector3(3.7, 0, -0.5)} />
+            <FireworksSystem isActive={hasFinished} position={new THREE.Vector3(4.1, 0, 0.5)} />
+            <FireworksSystem isActive={hasFinished} position={new THREE.Vector3(3.3, 0, -0.3)} />
+            <FireworksSystem isActive={hasFinished} position={new THREE.Vector3(3.9, 0, -1)} />
+
+            {hasFinished && (
+                <>
+                    <DiscoSpotlight
+                        position={new THREE.Vector3(0, 6, 4)}
+                        color="#ff5eb7"
+                        speed={0.9}
+                        pattern="sweep"
+                    />
+
+                    <DiscoSpotlight
+                        position={new THREE.Vector3(0, 6, 4)}
+                        color="#5eff79"
+                        speed={0.9}
+                        pattern="figure8"
+                    />
+                </>
+            )}
         </>
     );
 }

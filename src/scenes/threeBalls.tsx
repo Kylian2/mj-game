@@ -1,12 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { DoubleSide } from "three";
-import { TossIntroduction } from "../tutorials/toss/introduction";
-import * as THREE from "three";
-import { TossPractice } from "../tutorials/toss/practice";
-import { CatchIntroduction } from "../tutorials/catch/introduction";
-import { CatchPractice } from "../tutorials/catch/practice";
-import { HandStateDemo } from "./handStateDemo";
-import { FullPratice } from "../tutorials/full";
+import { Button } from "@react-three/uikit-default";
+import { Root, Text } from "@react-three/uikit";
 import { ThreeBallPerformance } from "../figures/threeBalls";
 
 export function ThreeBallsScene({ scene }: { scene: [string, Dispatch<SetStateAction<string>>] }) {
@@ -51,26 +46,24 @@ export function ThreeBallsScene({ scene }: { scene: [string, Dispatch<SetStateAc
     // Crowd of spectators
     function Crowd() {
         const positions = [
-            [-12, 0, 5],
-            [-10, 0, 6],
-            [-8, 0, 5.5],
-            [8, 0, 5.5],
-            [10, 0, 6],
-            [12, 0, 5],
-            [-15, 0, 8],
-            [-12, 0, 9],
-            [-9, 0, 8.5],
+            [18, 0, 5.5],
+            [10, 0, 10],
+            [12, 0, 15],
             [9, 0, 8.5],
             [12, 0, 9],
             [15, 0, 8],
-            [-18, 0, 12],
-            [-14, 0, 11],
             [14, 0, 11],
-            [18, 0, 12]
+            [18, 0, 10],
+            [2, 0, 10],
+            [5, 0, 13],
+            [4, 0, 7],
+            [7, 0, 8],
+            [8, 0, 12],
+            [6, 0, 9]
         ];
 
         return (
-            <group position={[0, 0, -10]}>
+            <group position={[0, 0, 10]} rotation={[0, Math.PI / 2, 0]}>
                 {positions.map((pos, index) => (
                     <group key={index} position={[pos[0], pos[1], pos[2]]}>
                         {/* Body */}
@@ -181,6 +174,16 @@ export function ThreeBallsScene({ scene }: { scene: [string, Dispatch<SetStateAc
             <pointLight position={[5, 8, 5]} intensity={1} color="#4ecdc4" />
 
             <ThreeBallPerformance />
+
+            <group position={[1, 1, -4]}>
+                <Root>
+                    <Button backgroundColor={"white"} onClick={() => setScene("home")}>
+                        <Text color={"black"} onClick={() => setScene("home")}>
+                            Accueil
+                        </Text>
+                    </Button>
+                </Root>
+            </group>
         </group>
     );
 }

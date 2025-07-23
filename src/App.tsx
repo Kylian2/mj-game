@@ -13,6 +13,9 @@ import { WebGLRenderer } from "three";
 import { DanubeBleuFigure } from "./figures/danubebleu";
 import { Tutorial } from "./scenes/tutorial";
 import { ThreeBallsScene } from "./scenes/threeBalls";
+import { TwoBallsScene } from "./scenes/twoBall";
+import { ThreeBallsTrainingScene } from "./scenes/threeBallsTraining";
+import { TwoBallsTrainingScene } from "./scenes/twoBallTraining";
 
 const store = createXRStore();
 
@@ -59,7 +62,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 
 export default function App() {
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("tutorial");
+    const [scene, setScene] = useState<string>("home");
 
     return (
         <div className="canvas-container">
@@ -69,7 +72,7 @@ export default function App() {
                     <PerspectiveCamera position={[0, 4, 10]} makeDefault />
                     <XROrigin
                         ref={xrOrigin}
-                        rotation={[0, -Math.PI / 2, 0]}
+                        rotation={scene === "home" ? [0, 0, 0] : [0, -Math.PI / 2, 0]}
                         position={[0.08, 0.2, 0]}
                     />
                     <OrbitControls />
@@ -79,10 +82,18 @@ export default function App() {
                     {scene === "home" && <HomeScene scene={[scene, setScene]} />}
                     {scene === "tutorial" && <Tutorial scene={[scene, setScene]} />}
                     {scene === "danubebleu" && <DanubeBleu scene={[scene, setScene]} />}
+                    {scene === "two-balls" && <TwoBallsScene scene={[scene, setScene]} />}
+                    {scene === "two-balls-training" && (
+                        <TwoBallsTrainingScene scene={[scene, setScene]} />
+                    )}
                     {scene === "three-balls" && <ThreeBallsScene scene={[scene, setScene]} />}
+                    {scene === "three-balls-training" && (
+                        <ThreeBallsTrainingScene scene={[scene, setScene]} />
+                    )}
 
                     <FlyPlayer xrOrigin={xrOrigin} />
                     <RotatePlayer />
+                    {scene === "home" && <MovePlayer xrOrigin={xrOrigin} />}
                 </XR>
             </Canvas>
         </div>

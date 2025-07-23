@@ -62,7 +62,7 @@ const pattern: JugglingPatternRaw = {
                     {
                         tempo: "1",
                         hands: [["Do"], ["Re", "Mi"]],
-                        pattern: "R35003 35003 35003 42334 05003 35003 35003 42334 0300"
+                        pattern: "R35003 35003 42334 35003  05003"
                     }
                 ]
             ]
@@ -71,7 +71,7 @@ const pattern: JugglingPatternRaw = {
     musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
 };
 
-export function ThreeBallPerformance() {
+export function ThreeBallPerformance({ training = false }: { training?: boolean }) {
     // Model's definition
     const [model, setModel] = useState(() => patternToModel(pattern));
     const [ballsData] = useState([
@@ -124,15 +124,8 @@ export function ThreeBallPerformance() {
         [
             1,
             {
-                congratulations: ["Super ! Vous avez compris", "Essayons un peu plus vite"],
+                congratulations: ["Super !", "Appuyez sur B pour rejouer"],
                 speed: 0.3
-            }
-        ],
-        [
-            2,
-            {
-                congratulations: ["Impressionnant !"],
-                speed: 0.5
             }
         ]
     ]);
@@ -156,14 +149,12 @@ export function ThreeBallPerformance() {
     // Function executed when a level is finished
     const nextLevel = async () => {
         const infos = levelsInformations.get(level.current); // retrieve current level informations
-        console.log("Passage de niveau (actuellement) = " + level.current);
-        console.log(infos);
         if (!infos) {
             console.warn("No information for level " + level.current);
             return;
         }
 
-        // If there is error, we try again (level stay the same)
+        // If there is error, we try again
         if (errorCount.current > 0) {
             errorCount.current = 0;
             setText("Dommage, allez on reessaye");
@@ -188,40 +179,13 @@ export function ThreeBallPerformance() {
             }
         }
 
-        await wait(1500);
-
-        // If there is remaining level, we move on the next
-        if (level.current + 1 <= 2) {
-            console.log("Incrementation de level, avant = " + level.current);
-            level.current++;
-            console.log("Incrementation de level, apres = " + level.current);
-        } else {
-            //Otherwise introduction is finished
-            setText("Bravo ! Vous avez fini les tutoriels !");
-            await wait(4000);
-            return;
-        }
-
-        // We set speed of next level
-        const nextInfo = levelsInformations.get(level.current);
-        if (!nextInfo) {
-            console.warn("No information for level " + level.current);
-            return;
-        }
-
-        await countdown();
-
-        clock.current.setPlaybackRate(nextInfo.speed);
         clock.current.setTime(0);
-        clock.current.play();
+        clock.current.pause();
     };
 
     useEffect(() => {
         const handleReachedEnd = () => {
-            console.log("reachedEnd");
-            clock.current.setTime(0);
-            clock.current.pause();
-            nextLevel(); // nextLevel() is executed when clock reach end
+            if (!training) nextLevel();
         };
 
         clock.current.addEventListener("reachedEnd", handleReachedEnd);
@@ -465,7 +429,7 @@ export function ThreeBallPerformance() {
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
-                makeStop={true}
+                makeStop={false}
             />
             <TossChecker
                 model={model}
@@ -475,11 +439,13 @@ export function ThreeBallPerformance() {
                 setErrorText={setText}
                 makeStop={true}
             />
-            <TimeControls
-                timeConductor={clock.current}
-                position={[3.5, 0.8, 0]}
-                rotation={[0, -Math.PI / 2, 0]}
-            ></TimeControls>
+            {training && (
+                <TimeControls
+                    timeConductor={clock.current}
+                    position={[3.5, 0.8, 0]}
+                    rotation={[0, -Math.PI / 2, 0]}
+                ></TimeControls>
+            )}
         </>
     );
 }

@@ -27,10 +27,13 @@ import {
     patternToModel,
     PerformanceView,
     type BasicJugglerProps,
-    type JugglingPatternRaw
+    type JugglingPatternRaw,
+    type BasicBallProps
 } from "musicaljuggling";
 import { Root, Text } from "@react-three/uikit";
-import { TossChecker } from "../../utilities/tossChecker";
+import { CatchChecker } from "../utilities/catchChecker";
+import { TossChecker } from "../utilities/tossChecker";
+import { TimeControls } from "../ui/TimeControls";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -48,14 +51,17 @@ const pattern: JugglingPatternRaw = {
         {
             name: "Jean",
             table: "JeanT",
-            balls: [{ id: "Do?K", name: "Do", sound: "Do" }],
+            balls: [
+                { id: "Do?K", name: "Do", sound: "Do" },
+                { id: "Re?K", name: "Re", sound: "Re" }
+            ],
             events: [
                 [
                     "0",
                     {
                         tempo: "1",
-                        hands: [[], ["Do"]],
-                        pattern: "R202020300300300202020111"
+                        hands: [["Do"], ["Re"]],
+                        pattern: "R31313122313131"
                     }
                 ]
             ]
@@ -64,17 +70,19 @@ const pattern: JugglingPatternRaw = {
     musicConverter: [[0, { signature: "1", tempo: { note: "1", bpm: 200 } }]]
 };
 
-export function TossPractice({ change }: { change: Dispatch<SetStateAction<string>> }) {
+export function TwoBallsPerformance({ training = false }: { training?: boolean }) {
     // Model's definition
     const [model, setModel] = useState(() => patternToModel(pattern));
-    const [ballsData] = useState([{ id: "Do?K", color: "red" }]);
+    const [ballsData] = useState([
+        { id: "Do?K", color: "green" },
+        { id: "Re?K", color: "blue" }
+    ]);
     const [jugglersData] = useState([{ name: "Jean", position: [-1, 0, 0] }]);
 
     // Clock settings, set clock's bounds in function of model's duration
     let [start, end] = model.patternTimeBounds();
     if (!end) end = 15;
     const clock = useRef<Clock>(new Clock({ bounds: [0, end] }));
-
     // Set playbackrate
     useEffect(() => {
         clock.current.setPlaybackRate(0.3);
@@ -114,15 +122,8 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
         [
             1,
             {
-                congratulations: ["Super ! Vous avez compris", "Essayons un peu plus vite"],
+                congratulations: ["Super !", "Appuyez sur B pour rejouer"],
                 speed: 0.3
-            }
-        ],
-        [
-            2,
-            {
-                congratulations: ["Impressionnant"],
-                speed: 0.5
             }
         ]
     ]);
@@ -146,13 +147,12 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
     // Function executed when a level is finished
     const nextLevel = async () => {
         const infos = levelsInformations.get(level.current); // retrieve current level informations
-
         if (!infos) {
             console.warn("No information for level " + level.current);
             return;
         }
 
-        // If there is error, we try again (level stay the same)
+        // If there is error, we try again
         if (errorCount.current > 0) {
             errorCount.current = 0;
             setText("Dommage, allez on reessaye");
@@ -166,7 +166,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
             return;
         }
 
-        //Is there is no error
+        //If there is no error
         errorCount.current = 0; //maybe be dispensable
 
         //We display all congratulations texts
@@ -177,41 +177,13 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
             }
         }
 
-        await wait(1500);
-
-        // If there is remaining level, we move on the next
-        if (level.current + 1 <= levelsInformations.size) {
-            console.log("Incrementation de level, avant = " + level.current);
-            level.current++;
-            console.log("Incrementation de level, apres = " + level.current);
-        } else {
-            //Otherwise we move on the full practice
-            setText("Bravo ! On peut maintenant mixer lancers et rattrapes !");
-            await wait(2000);
-            change("full-practice");
-            return;
-        }
-
-        // We set speed of next level
-        const nextInfo = levelsInformations.get(level.current);
-        if (!nextInfo) {
-            console.warn("No information for level " + level.current);
-            return;
-        }
-
-        await countdown();
-
-        clock.current.setPlaybackRate(nextInfo.speed);
         clock.current.setTime(0);
-        clock.current.play();
+        clock.current.pause();
     };
 
     useEffect(() => {
         const handleReachedEnd = () => {
-            console.log("reachedEnd");
-            clock.current.setTime(0);
-            clock.current.pause();
-            nextLevel(); // nextLevel() is executed when clock reach end
+            if (!training) nextLevel();
         };
 
         clock.current.addEventListener("reachedEnd", handleReachedEnd);
@@ -296,6 +268,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
                             performance.position[2] + jugglerPos[2]
                         );
                     }
+
                     // We convert position from world to local referential (THIS MUST BE FIXED IN A CLEANER WAY IN THE LIB)
                     const localPos = o.worldToLocal(model.rightHand.position(time).clone());
                     jugglerObject.rightHand.position.copy(localPos);
@@ -448,6 +421,14 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
             <TextComponent text={text}></TextComponent>
+            <CatchChecker
+                model={model}
+                clock={clock.current}
+                ballsRef={ballsRef}
+                errorCount={errorCount}
+                setErrorText={setText}
+                makeStop={false}
+            />
             <TossChecker
                 model={model}
                 clock={clock.current}
@@ -456,6 +437,13 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
                 setErrorText={setText}
                 makeStop={true}
             />
+            {training && (
+                <TimeControls
+                    timeConductor={clock.current}
+                    position={[3.5, 0.8, 0]}
+                    rotation={[0, -Math.PI / 2, 0]}
+                ></TimeControls>
+            )}
         </>
     );
 }
