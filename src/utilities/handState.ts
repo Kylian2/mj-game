@@ -7,7 +7,7 @@ import * as THREE from "three";
  * @param entry
  * @returns Vector3
  */
-function DOMPointReadOnlyToVector3(entry: DOMPointReadOnly) {
+export function DOMPointReadOnlyToVector3(entry: DOMPointReadOnly) {
     return new THREE.Vector3(entry.x, entry.y, entry.z);
 }
 
@@ -277,4 +277,24 @@ export class HandState extends EventDispatcher<HandActionEvents> {
             this.wasCloseHand.left = false;
         }
     }
+}
+
+export function getPosition(
+    hand: XRHand,
+    fingerName: XRHandJoint,
+    frame: XRFrame,
+    referenceSpace: XRReferenceSpace
+): THREE.Vector3 | null {
+    const finger = hand.get(fingerName);
+
+    if (!finger || !frame.getJointPose) return null;
+    console.log(finger);
+
+    const fingerPose = frame.getJointPose(finger, referenceSpace);
+
+    if (!fingerPose) return null;
+
+    const fingerPos = DOMPointReadOnlyToVector3(fingerPose.transform.position);
+
+    return fingerPos;
 }
