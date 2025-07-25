@@ -9,21 +9,20 @@ import { MovePlayer } from "./xrControls/MovePlayer";
 import { useEffect, useRef, useState } from "react";
 import { HomeScene } from "./scenes/home";
 import { DanubeBleu } from "./scenes/danubebleu";
-import { WebGLRenderer } from "three";
 import { DanubeBleuFigure } from "./figures/danubebleu";
 import { Tutorial } from "./scenes/tutorial";
 import { ThreeBallsScene } from "./scenes/threeBalls";
 import { TwoBallsScene } from "./scenes/twoBall";
 import { ThreeBallsTrainingScene } from "./scenes/threeBallsTraining";
 import { TwoBallsTrainingScene } from "./scenes/twoBallTraining";
-
+import * as THREE from "three";
 const store = createXRStore();
 
 /**
  * Handle position reset when changing scene
  */
 function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.RefObject<any> }) {
-    const { gl } = useThree() as { gl: WebGLRenderer & { xr: any } };
+    const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
     const initialReferenceSpace = useRef<XRReferenceSpace | null>(null);
     const isInitialized = useRef(false);
     const lastScene = useRef(scene);
@@ -32,9 +31,29 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
     useFrame(() => {
         if (!isInitialized.current && gl.xr.isPresenting) {
             const currentReferenceSpace = gl.xr.getReferenceSpace();
+            console.log(xrOrigin.current.position);
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromEuler(new THREE.Euler(0, Math.PI / 2, 0));
+            const offsetTransform = new XRRigidTransform(
+                {
+                    x: -0.08,
+                    y: -0.2,
+                    z: 0
+                },
+                quaternion
+            );
+
+            const synchronizedSpace =
+                currentReferenceSpace.getOffsetReferenceSpace(offsetTransform);
             if (currentReferenceSpace) {
-                initialReferenceSpace.current = currentReferenceSpace;
+                initialReferenceSpace.current = synchronizedSpace;
                 isInitialized.current = true;
+
+                try {
+                    gl.xr.setReferenceSpace(initialReferenceSpace.current);
+                } catch (e) {
+                    console.warn("Error during reference space change", e);
+                }
             }
         }
     });
@@ -62,7 +81,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 
 export default function App() {
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("home");
+    const [scene, setScene] = useState<string>("tutorial");
 
     return (
         <div className="canvas-container">
@@ -72,8 +91,8 @@ export default function App() {
                     <PerspectiveCamera position={[0, 4, 10]} makeDefault />
                     <XROrigin
                         ref={xrOrigin}
-                        rotation={scene === "home" ? [0, 0, 0] : [0, -Math.PI / 2, 0]}
-                        position={[0.08, 0.2, 0]}
+                        rotation={scene === "home" ? [0, 0, 0] : [0, 0, 0]}
+                        // position={[0.08, 0.2, 0]}
                     />
                     <OrbitControls />
 
