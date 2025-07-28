@@ -237,13 +237,9 @@ export function CatchChecker({
                 // Get the ball's current world position
                 const ballWorldPos = new THREE.Vector3();
                 ballObject.getWorldPosition(ballWorldPos);
-                console.log("balle");
-                console.log(ballWorldPos);
                 if (event.hand.isRightHand()) {
                     // Check collision with right controller
                     const distanceRight = rightPos?.distanceTo(ballWorldPos);
-                    console.log(distanceRight);
-                    console.log(radius);
 
                     if (distanceRight && distanceRight <= radius) {
                         // Successful catch
@@ -256,7 +252,6 @@ export function CatchChecker({
                 } else {
                     // Check collision with left controller
                     const distanceLeft = leftPos?.distanceTo(ballWorldPos);
-                    console.log(distanceLeft);
                     if (distanceLeft && distanceLeft <= radius) {
                         // Successful catch
                         ballObject.userData.isExplosing = true; // Mark ball for visual effect

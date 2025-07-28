@@ -288,7 +288,6 @@ export function getPosition(
     const finger = hand.get(fingerName);
 
     if (!finger || !frame.getJointPose) return null;
-    console.log(finger);
 
     const fingerPose = frame.getJointPose(finger, referenceSpace);
 
@@ -321,9 +320,6 @@ export function getHandPosition(
         );
 
         if (!middleFingerMetacarpal || !middleFingerPhalancProximal) return null;
-
-        console.log(middleFingerMetacarpal);
-        console.log(middleFingerPhalancProximal);
 
         position
             .addVectors(middleFingerMetacarpal, middleFingerPhalancProximal)

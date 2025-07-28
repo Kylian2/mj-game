@@ -193,6 +193,12 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
         };
     }, [handState]);
 
+    // Update subtexts when interaction method change
+    useEffect(() => {
+        if (rightController) setSubtext(subtexts.controller);
+        else setSubtext(subtexts.hand);
+    }, [leftController, rightController, rightHand, leftHand]);
+
     // The section below is executed at each frame
     useFrame((state, delta, frame) => {
         handState?.update(frame, referenceSpace); //First we update the handState to detect if hand actions

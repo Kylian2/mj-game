@@ -168,11 +168,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
     }, [leftHand, rightHand]);
 
     useEffect(() => {
-        if (!handState) {
-            //     setSubtext(subtexts.controller);
-            return;
-        }
-        // setSubtext(subtexts.hand);
+        if (!handState) return;
 
         // A simple pinch is associated to a OK action
         handState.addEventListener("pinch", (e: HandActionEvent) => {
@@ -188,6 +184,12 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             handState?.removeAllEventListeners();
         };
     }, [handState]);
+
+    // Update subtexts when interaction method change
+    useEffect(() => {
+        if (rightController) setSubtext(subtexts.controller);
+        else setSubtext(subtexts.hand);
+    }, [leftController, rightController, rightHand, leftHand]);
 
     // The section below is executed at each frame
     useFrame((state, delta, frame) => {
@@ -351,7 +353,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
                     </mesh>
                     {/* Those points are used for particules effect */}
                     <points>
-                        <sphereGeometry args={[radius - 0.05, 16, 16]} />
+                        <sphereGeometry args={[radius - 0.04, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>

@@ -151,7 +151,7 @@ export function Tutorial({ scene }: { scene: [string, Dispatch<SetStateAction<st
         );
     }
 
-    const [tutorial, setTutorial] = useState("toss-practice");
+    const [tutorial, setTutorial] = useState("catch-introduction");
 
     useFrame(() => {
         if (tutorial === "finished") setScene("home");
