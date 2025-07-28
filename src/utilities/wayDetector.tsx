@@ -226,7 +226,7 @@ export function WayDetector({
                             length={0.15}
                             origin={pos}
                             rotation={
-                                new THREE.Euler(((hand === "right" ? -3 : -1) * Math.PI) / 4, 0, 0)
+                                new THREE.Euler(((hand === "right" ? -2 : -1) * Math.PI) / 3, 0, 0)
                             }
                             controller={controller}
                             detectionIncoming={incomingSiteswap}
