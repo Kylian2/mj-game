@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { useXRInputSourceState, XRControllerState, XRHandsState } from "@react-three/xr";
+import type { useXRInputSourceState, XRControllerState } from "@react-three/xr";
 
 /**
  * Arrow Component
@@ -10,9 +10,8 @@ import type { useXRInputSourceState, XRControllerState, XRHandsState } from "@re
  * Each arrow has a collision detection system that activates when the VR controller intersects
  * with its hitbox, allowing the system to detect when the user performs the correct toss motion.
  *
- * @param origin - 3D position where the arrow is placed
- * @param rotation - Euler rotation defining the arrow's direction
- * @param length - Total length of the arrow
+ * @param origin - 3D position where the arrow starts
+ * @param target - 3D position where the arrow points to
  * @param bodyRadius - Radius of the arrow's cylindrical body
  * @param color - Color of the arrow
  * @param detectionIncoming - The siteswap value currently expected (from performance model)
@@ -22,8 +21,7 @@ import type { useXRInputSourceState, XRControllerState, XRHandsState } from "@re
  */
 function Arrow({
     origin = new THREE.Vector3(0, 0, 0),
-    rotation = new THREE.Euler(0, 0, 0),
-    length = 0.3,
+    target = new THREE.Vector3(0, 0.3, 0),
     bodyRadius = 0.015,
     color = "orange",
     detectionIncoming,
@@ -32,8 +30,7 @@ function Arrow({
     siteswap
 }: {
     origin: THREE.Vector3;
-    rotation?: THREE.Euler;
-    length?: number;
+    target: THREE.Vector3;
     bodyRadius?: number;
     color?: string;
     detectionIncoming?: number;
@@ -41,6 +38,29 @@ function Arrow({
     onCollision?: (distance: number) => void;
     siteswap?: number;
 }) {
+    // Calculate arrow direction and length from origin to target
+    const direction = new THREE.Vector3().subVectors(target, origin);
+    const length = direction.length();
+
+    // Calculate rotation from direction vector
+    const rotation = useMemo(() => {
+        const rot = new THREE.Euler();
+        if (length > 0.001) {
+            // Avoid very small lengths
+            const normalizedDirection = direction.clone().normalize();
+
+            // Use quaternion for more stable rotation calculation
+            const quaternion = new THREE.Quaternion();
+
+            // Default arrow points up (0, 1, 0), we want it to point in direction
+            const up = new THREE.Vector3(0, 1, 0);
+            quaternion.setFromUnitVectors(up, normalizedDirection);
+
+            rot.setFromQuaternion(quaternion);
+        }
+        return rot;
+    }, [direction.x, direction.y, direction.z, length]);
+
     // Calculate arrow geometry proportions
     const bodyLength = length * 0.8; // 80% of total length for the body
     const headLength = length * 0.2; // 20% of total length for the head
@@ -85,38 +105,25 @@ function Arrow({
         }
     });
 
-    // Visual indication: highlight the arrow if it matches the expected siteswap
-    const currentOpacity = siteswap === detectionIncoming ? 0.8 : 0.2;
-    const currentVisibility = siteswap === detectionIncoming;
-
     return (
-        <group position={origin} rotation={rotation} visible={currentVisibility}>
-            {/* Arrow Body */}
-            <mesh position={[0, 0, bodyLength - headLength]} rotation={[Math.PI / 2, 0, 0]}>
-                <cylinderGeometry args={[bodyRadius, bodyRadius, bodyLength, 16]} />
-                <meshStandardMaterial color={color} transparent opacity={currentOpacity} />
+        <group position={origin} rotation={rotation}>
+            <mesh position={[0, bodyLength / 2, 0]}>
+                <cylinderGeometry args={[bodyRadius, bodyRadius, bodyLength, 8]} />
+                <meshBasicMaterial color={color} />
             </mesh>
 
-            {/* Arrow Head */}
-            <mesh position={[0, 0, bodyLength + headLength * 1.5]} rotation={[Math.PI / 2, 0, 0]}>
-                <coneGeometry args={[headRadius, headLength, 16]} />
-                <meshStandardMaterial color={color} transparent opacity={currentOpacity} />
+            <mesh position={[0, bodyLength + headLength / 2, 0]}>
+                <coneGeometry args={[headRadius, headLength, 8]} />
+                <meshBasicMaterial color={color} />
             </mesh>
 
-            {/* Collision Hitbox - Invisible sphere for collision detection */}
-            <mesh
-                ref={hitbox}
-                position={[0, 0, bodyLength + headLength * 1.5]}
-                rotation={[Math.PI / 2, 0, 0]}
-                visible={false}
-            >
+            <mesh ref={hitbox} position={[0, collisionThreshold, 0]} visible={false}>
                 <sphereGeometry args={[collisionThreshold, 16, 16]} />
                 <meshStandardMaterial color="white" transparent opacity={0.1} wireframe={true} />
             </mesh>
         </group>
     );
 }
-
 /**
  * WayDetector Component
  *
@@ -139,19 +146,17 @@ export function WayDetector({
     controller,
     incomingSiteswap,
     onSuccess,
-    onError
+    onError,
+    velocity,
+    pos
 }: {
     controller: XRControllerState;
     incomingSiteswap: number | undefined;
     onSuccess: Function;
     onError: Function;
+    velocity: THREE.Vector3;
+    pos: THREE.Vector3;
 }) {
-    // Position where the arrows are anchored (updated on button press)
-    const [pos, setPos] = useState(new THREE.Vector3(0, 0, 0));
-
-    // Button state tracking (true = pressed, false = released)
-    const [button, setButton] = useState(false);
-
     // Track which hand this detector is for (left/right)
     const [hand, setHand] = useState(controller.inputSource.handedness);
 
@@ -162,25 +167,9 @@ export function WayDetector({
         setHand(controller.inputSource.handedness);
     }, [controller]);
 
-    /**
-     * Frame Loop - Button State Management
-     *
-     * Tracks button presses to determine when to update the arrow anchor position.
-     * Uses different buttons for different hands:
-     * - Right hand: A button
-     * - Left hand: X button
-     *
-     * The arrows are repositioned each time the user presses the button,
-     * allowing them to set up the toss guidance at their current hand position.
-     */
     useEffect(() => {
-        if (controller) {
-            const position = new THREE.Vector3();
-            controller?.object?.getWorldPosition(position);
-            setPos(position);
-        }
-    }, [incomingSiteswap]);
-
+        console.log(velocity);
+    }, [velocity]);
     /**
      * Collision Handler
      *
@@ -204,80 +193,17 @@ export function WayDetector({
 
     return (
         <>
-            {/* Only render arrows when button is pressed */}
-            {true && (
-                <group>
-                    {/* Siteswap 1 Arrow - Horizontal toss (hand to hand) */}
-                    <Arrow
-                        color="yellow"
-                        length={0.15}
-                        origin={pos}
-                        rotation={new THREE.Euler((hand === "right" ? 1 : 2) * Math.PI, 0, 0)}
-                        controller={controller}
-                        detectionIncoming={incomingSiteswap}
-                        siteswap={1}
-                        onCollision={handleCollision}
-                    />
-
-                    {/* Siteswap 3 Arrow - Cross toss (to opposite hand) */}
-                    {incomingSiteswap !== 5 && (
-                        <Arrow
-                            color="lightblue"
-                            length={0.15}
-                            origin={pos}
-                            rotation={
-                                new THREE.Euler(((hand === "right" ? -2 : -1) * Math.PI) / 3, 0, 0)
-                            }
-                            controller={controller}
-                            detectionIncoming={incomingSiteswap}
-                            siteswap={3}
-                            onCollision={handleCollision}
-                        />
-                    )}
-
-                    {/* Siteswap 5 Arrow */}
-                    {incomingSiteswap !== 3 && (
-                        <Arrow
-                            color="pink"
-                            length={0.25}
-                            origin={pos}
-                            rotation={
-                                new THREE.Euler(((hand === "right" ? -2 : -1) * Math.PI) / 3, 0, 0)
-                            }
-                            controller={controller}
-                            detectionIncoming={incomingSiteswap}
-                            siteswap={5}
-                            onCollision={handleCollision}
-                        />
-                    )}
-
-                    {/* Siteswap 2 Arrow - Vertical toss */}
-                    {incomingSiteswap !== 4 && (
-                        <Arrow
-                            color="lightgreen"
-                            length={0.15}
-                            origin={pos}
-                            rotation={new THREE.Euler(-Math.PI / 2, 0, 0)}
-                            controller={controller}
-                            detectionIncoming={incomingSiteswap}
-                            siteswap={2}
-                            onCollision={handleCollision}
-                        />
-                    )}
-
-                    {/* Siteswap 4 Arrow */}
-                    <Arrow
-                        color="green"
-                        length={0.25}
-                        origin={pos}
-                        rotation={new THREE.Euler(-Math.PI / 2, 0, 0)}
-                        controller={controller}
-                        detectionIncoming={incomingSiteswap}
-                        siteswap={4}
-                        onCollision={handleCollision}
-                    />
-                </group>
-            )}
+            <group>
+                <Arrow
+                    color="yellow"
+                    target={pos.clone().add(velocity.clone().multiplyScalar(0.25))}
+                    origin={pos}
+                    controller={controller}
+                    detectionIncoming={incomingSiteswap}
+                    siteswap={incomingSiteswap}
+                    onCollision={handleCollision}
+                />
+            </group>
         </>
     );
 }

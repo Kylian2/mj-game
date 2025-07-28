@@ -36,7 +36,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
             quaternion.setFromEuler(new THREE.Euler(0, Math.PI / 2, 0));
             const offsetTransform = new XRRigidTransform(
                 {
-                    x: -0.08,
+                    x: 0,
                     y: -0.1,
                     z: 0
                 },
@@ -81,7 +81,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 
 export default function App() {
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("home");
+    const [scene, setScene] = useState<string>("tutorial");
 
     return (
         <div className="canvas-container">
