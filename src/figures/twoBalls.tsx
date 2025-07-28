@@ -321,7 +321,7 @@ export function TwoBallsPerformance({ training = false }: { training?: boolean }
             };
         }, [performance, radius, id]);
 
-        radius ??= DEFAULT_BALL_RADIUS;
+        radius ??= 0.05;
         widthSegments ??= DEFAULT_BALL_WIDTH_SEGMENT;
         heightSegments ??= DEFAULT_BALL_HEIGHT_SEGMENT;
         color ??= DEFAULT_BALL_COLOR;

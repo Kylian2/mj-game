@@ -347,7 +347,7 @@ export function CatchPractice({ change }: { change: Dispatch<SetStateAction<stri
             };
         }, [performance, radius, id]);
 
-        radius ??= DEFAULT_BALL_RADIUS;
+        radius ??= 0.05;
         widthSegments ??= DEFAULT_BALL_WIDTH_SEGMENT;
         heightSegments ??= DEFAULT_BALL_HEIGHT_SEGMENT;
         color ??= DEFAULT_BALL_COLOR;
