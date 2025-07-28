@@ -31,13 +31,13 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
     useFrame(() => {
         if (!isInitialized.current && gl.xr.isPresenting) {
             const currentReferenceSpace = gl.xr.getReferenceSpace();
-            console.log(xrOrigin.current.position);
+
             const quaternion = new THREE.Quaternion();
             quaternion.setFromEuler(new THREE.Euler(0, Math.PI / 2, 0));
             const offsetTransform = new XRRigidTransform(
                 {
                     x: -0.08,
-                    y: -0.2,
+                    y: -0.1,
                     z: 0
                 },
                 quaternion
@@ -81,7 +81,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 
 export default function App() {
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("tutorial");
+    const [scene, setScene] = useState<string>("home");
 
     return (
         <div className="canvas-container">
