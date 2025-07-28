@@ -6,7 +6,7 @@ import { Clock, PerformanceModel, Alerts, AlertsTimeline } from "musicaljuggling
 import { type AlertEvent } from "musicaljuggling";
 import { Box } from "@react-three/drei";
 import { type CallbackFunction } from "musicaljuggling";
-import { getPosition } from "./handState";
+import { getHandPosition, getPosition } from "./handState";
 
 /**
  * CatchChecker Component
@@ -172,29 +172,7 @@ export function CatchChecker({
             const source = hand.inputSource.hand;
             const referenceSpace = gl.xr.getReferenceSpace();
             if (source && frame && frame.getJointPose) {
-                const middleFingerMetacarpal = getPosition(
-                    source,
-                    "middle-finger-metacarpal",
-                    frame,
-                    referenceSpace
-                );
-                const middleFingerPhalancProximal = getPosition(
-                    source,
-                    "middle-finger-phalanx-proximal",
-                    frame,
-                    referenceSpace
-                );
-
-                if (!middleFingerMetacarpal || !middleFingerPhalancProximal) return null;
-
-                console.log(middleFingerMetacarpal);
-                console.log(middleFingerPhalancProximal);
-
-                position
-                    .addVectors(middleFingerMetacarpal, middleFingerPhalancProximal)
-                    .multiplyScalar(0.5);
-
-                return position;
+                return getHandPosition(source, frame, referenceSpace);
             }
         }
 

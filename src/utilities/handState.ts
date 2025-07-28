@@ -298,3 +298,39 @@ export function getPosition(
 
     return fingerPos;
 }
+
+export function getHandPosition(
+    hand: XRHand,
+    frame: XRFrame | undefined,
+    referenceSpace: XRReferenceSpace
+): THREE.Vector3 | null {
+    const position = new THREE.Vector3();
+
+    if (hand && frame && frame.getJointPose) {
+        const middleFingerMetacarpal = getPosition(
+            hand,
+            "middle-finger-metacarpal",
+            frame,
+            referenceSpace
+        );
+        const middleFingerPhalancProximal = getPosition(
+            hand,
+            "middle-finger-phalanx-proximal",
+            frame,
+            referenceSpace
+        );
+
+        if (!middleFingerMetacarpal || !middleFingerPhalancProximal) return null;
+
+        console.log(middleFingerMetacarpal);
+        console.log(middleFingerPhalancProximal);
+
+        position
+            .addVectors(middleFingerMetacarpal, middleFingerPhalancProximal)
+            .multiplyScalar(0.5);
+
+        return position;
+    } else {
+        return null;
+    }
+}

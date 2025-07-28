@@ -139,9 +139,14 @@ export function TossChecker({
         };
     }, [model]);
 
-    const left = useXRInputSourceState("controller", "left");
-    const right = useXRInputSourceState("controller", "right");
+    //Set up all interactions method (hand and controller)
+    const leftController = useXRInputSourceState("controller", "left");
+    const leftHandState = useXRInputSourceState("hand", "left");
+    const rightController = useXRInputSourceState("controller", "right");
+    const rightHandState = useXRInputSourceState("hand", "right");
 
+    const leftHand = leftHandState ? leftHandState.inputSource.hand : undefined;
+    const rightHand = rightHandState ? rightHandState.inputSource.hand : undefined;
     /**
      * Vibrate Controller Function
      *
@@ -207,9 +212,10 @@ export function TossChecker({
     return (
         <>
             {/* Right Hand Motion Detection */}
-            {right && velocityRight && ballPosRight && (
+            {(rightController || rightHand) && velocityRight && ballPosRight && (
                 <WayDetector
-                    controller={right}
+                    controller={rightController}
+                    hand={rightHand}
                     incomingSiteswap={incomingSiteswapRight}
                     onSuccess={successRight}
                     onError={error}
@@ -219,9 +225,10 @@ export function TossChecker({
             )}
 
             {/* Left Hand Motion Detection */}
-            {left && velocityLeft && ballPosLeft && (
+            {(leftController || leftHand) && velocityLeft && ballPosLeft && (
                 <WayDetector
-                    controller={left}
+                    controller={leftController}
+                    hand={leftHand}
                     incomingSiteswap={incomingSiteswapLeft}
                     onSuccess={successLeft}
                     onError={error}

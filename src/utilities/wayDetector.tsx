@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { useXRInputSourceState, XRControllerState } from "@react-three/xr";
+import { getHandPosition, getPosition } from "./handState";
 
 /**
  * Arrow Component
@@ -26,6 +27,7 @@ function Arrow({
     color = "orange",
     detectionIncoming,
     controller,
+    hand,
     onCollision,
     siteswap
 }: {
@@ -35,9 +37,12 @@ function Arrow({
     color?: string;
     detectionIncoming?: number;
     controller?: XRControllerState;
+    hand?: XRHand;
     onCollision?: (distance: number) => void;
     siteswap?: number;
 }) {
+    const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
+
     // Calculate arrow direction and length from origin to target
     const direction = new THREE.Vector3().subVectors(target, origin);
     const length = direction.length();
@@ -76,19 +81,25 @@ function Arrow({
     const collisionThreshold = 0.05;
 
     // Frame Loop - Collision Detection
-    useFrame(() => {
-        if (hitbox.current && controller && detectionIncoming) {
+    useFrame((_, __, frame) => {
+        if (hitbox.current && (controller || hand) && detectionIncoming) {
             // Get world position of the arrow's hitbox
             const hitboxPosition = new THREE.Vector3();
             hitbox.current.getWorldPosition(hitboxPosition);
 
             // Get world position of the controller
-            const controllerPosition = new THREE.Vector3();
-            controller?.object?.getWorldPosition(controllerPosition);
+            let handPosition = new THREE.Vector3();
+            if (controller) {
+                controller?.object?.getWorldPosition(handPosition);
+            } else if (hand) {
+                const referenceSpace = gl.xr.getReferenceSpace();
+                let pos = getHandPosition(hand, frame, referenceSpace);
+                if (pos) handPosition = pos;
+            }
 
             // Calculate distance between controller and hitbox
-            const distance = hitboxPosition.distanceTo(controllerPosition);
-
+            const distance = hitboxPosition.distanceTo(handPosition);
+            console.log(distance);
             // Track collision state changes
             const wasColliding = isColliding;
             const nowColliding = distance < collisionThreshold;
@@ -144,32 +155,21 @@ function Arrow({
  */
 export function WayDetector({
     controller,
+    hand,
     incomingSiteswap,
     onSuccess,
     onError,
     velocity,
     pos
 }: {
-    controller: XRControllerState;
+    controller: XRControllerState | undefined;
+    hand: XRHand | undefined;
     incomingSiteswap: number | undefined;
     onSuccess: Function;
     onError: Function;
     velocity: THREE.Vector3;
     pos: THREE.Vector3;
 }) {
-    // Track which hand this detector is for (left/right)
-    const [hand, setHand] = useState(controller.inputSource.handedness);
-
-    /**
-     * Update hand tracking when controller changes
-     */
-    useEffect(() => {
-        setHand(controller.inputSource.handedness);
-    }, [controller]);
-
-    useEffect(() => {
-        console.log(velocity);
-    }, [velocity]);
     /**
      * Collision Handler
      *
@@ -199,6 +199,7 @@ export function WayDetector({
                     target={pos.clone().add(velocity.clone().multiplyScalar(0.25))}
                     origin={pos}
                     controller={controller}
+                    hand={hand}
                     detectionIncoming={incomingSiteswap}
                     siteswap={incomingSiteswap}
                     onCollision={handleCollision}
