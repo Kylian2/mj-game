@@ -22,16 +22,14 @@ import {
     BasicJuggler,
     DEFAULT_BALL_COLOR,
     DEFAULT_BALL_HEIGHT_SEGMENT,
-    DEFAULT_BALL_RADIUS,
     DEFAULT_BALL_WIDTH_SEGMENT,
     patternToModel,
     PerformanceView,
     type BasicJugglerProps,
-    type JugglingPatternRaw,
-    type BasicBallProps
+    type JugglingPatternRaw
 } from "musicaljuggling";
 import { Root, Text } from "@react-three/uikit";
-import { HandState, isPinching, type HandActionEvent } from "../../utilities/handState";
+import { HandState, type HandActionEvent } from "../../utilities/handState";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -102,7 +100,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
     // Store tutorial's texts, and it's progression.
     const currentProgression = useRef(0);
     const texts = [
-        "Pour rattraper une balle, il faut placer sa main de façon a entrer en collision avec elle",
+        "Pour rattraper une balle, il faut placer sa main de facon a entrer en collision avec elle",
         "Vous pouvez vous aider de la previsualisation de la trajectoire de la balle pour anticiper les rattrapers",
         "Si vous reussissez a attraper la balle, vous verrez des particules autour de la balle",
         "Appuyez sur B pour passer a la pratique"
@@ -131,7 +129,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             if (currentProgression.current >= texts.length) {
                 change("catch-practice");
             }
-            if (currentProgression.current >= 3) clock.current.pause();
+            if (currentProgression.current >= 2) clock.current.pause();
         }
     };
 
@@ -143,7 +141,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             }
             clickCount.current = tickcount.current;
             setText(texts[currentProgression.current]);
-            if (currentProgression.current < 3) clock.current.play();
+            if (currentProgression.current < 2) clock.current.play();
         }
     };
 
@@ -168,11 +166,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
     }, [leftHand, rightHand]);
 
     useEffect(() => {
-        if (!handState) {
-            //     setSubtext(subtexts.controller);
-            return;
-        }
-        // setSubtext(subtexts.hand);
+        if (!handState) return;
 
         // A simple pinch is associated to a OK action
         handState.addEventListener("pinch", (e: HandActionEvent) => {
@@ -188,6 +182,12 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             handState?.removeAllEventListeners();
         };
     }, [handState]);
+
+    // Update subtexts when interaction method change
+    useEffect(() => {
+        if (rightController) setSubtext(subtexts.controller);
+        else setSubtext(subtexts.hand);
+    }, [leftController, rightController, rightHand, leftHand]);
 
     // The section below is executed at each frame
     useFrame((state, delta, frame) => {
@@ -325,7 +325,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
             };
         }, [performance, radius, id]);
 
-        radius ??= DEFAULT_BALL_RADIUS;
+        radius ??= 0.05;
         widthSegments ??= DEFAULT_BALL_WIDTH_SEGMENT;
         heightSegments ??= DEFAULT_BALL_HEIGHT_SEGMENT;
         color ??= DEFAULT_BALL_COLOR;
@@ -351,7 +351,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
                     </mesh>
                     {/* Those points are used for particules effect */}
                     <points>
-                        <sphereGeometry args={[radius - 0.05, 16, 16]} />
+                        <sphereGeometry args={[radius - 0.045, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>

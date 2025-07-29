@@ -7,6 +7,16 @@ interface MovePlayerProps {
     xrOrigin?: any | null;
 }
 
+/**
+ * Make the player move horizontaly
+ *
+ * ISSUE : Currently using xrOrigin to move the player, it's better to use XRReferenceSpace translation instead to prevent
+ * in game coordinate system / referenceSpace system desynchronisation. This desynchronisation make hand colision detection impossible
+ * because hand use referenceSpace coordinates system.
+ *
+ * @param xrOrigin
+ * @returns
+ */
 export function MovePlayer({ xrOrigin = null }: MovePlayerProps): ReactNode {
     const controller = useXRInputSourceState("controller", "left");
     const { gl } = useThree() as { gl: WebGLRenderer & { xr: any } }; // gl is the renderer
@@ -62,8 +72,7 @@ export function MovePlayer({ xrOrigin = null }: MovePlayerProps): ReactNode {
 
         xrOrigin.current.position.x += moveDirection.x * speed;
         xrOrigin.current.position.z += moveDirection.z * speed;
-
     });
 
-    return
+    return;
 }

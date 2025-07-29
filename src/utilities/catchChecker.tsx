@@ -1,10 +1,11 @@
 import { useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useXRInputSourceState, type XRControllerState } from "@react-three/xr";
 import * as THREE from "three";
 import { Clock, PerformanceModel, Alerts, AlertsTimeline } from "musicaljuggling";
 import { type AlertEvent } from "musicaljuggling";
-import { Box } from "@react-three/drei";
+import { type CallbackFunction } from "musicaljuggling";
+import { getHandPosition } from "./handState";
 
 /**
  * CatchChecker Component
@@ -33,6 +34,8 @@ export function CatchChecker({
     setErrorText?: Dispatch<SetStateAction<string>>;
     makeStop?: boolean;
 }) {
+    const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
+
     // Array to store catch events that are currently monitored
     const listenedEvent = useRef<Array<AlertEvent>>([]);
 
@@ -86,7 +89,7 @@ export function CatchChecker({
                 ) {
                     if (errorCount) errorCount.current++;
                     if (setErrorText) {
-                        setErrorText("Vous n'avez pas rattrapé la balle à droite");
+                        setErrorText("Vous n'avez pas rattrape la balle a droite");
                     }
                 }
 
@@ -98,7 +101,7 @@ export function CatchChecker({
                 ) {
                     if (errorCount) errorCount.current++;
                     if (setErrorText) {
-                        setErrorText("Vous n'avez pas rattrapé la balle à gauche");
+                        setErrorText("Vous n'avez pas rattrape la balle a gauche");
                     }
                 }
 
@@ -115,7 +118,7 @@ export function CatchChecker({
             /**
              * "instant" Event Handler - Triggered when a ball need to be catched
              */
-            alertes.addEventListener("instant", (e: AlertEvent) => {
+            alertes.addEventListener("instant", ((e: AlertEvent) => {
                 if (e.actionDescription === "caught") {
                     // Add this catch event to our monitoring list
                     listenedEvent.current.push(e);
@@ -129,7 +132,7 @@ export function CatchChecker({
                     }
                     clock.pause();
                 }
-            });
+            }) as CallbackFunction);
         }
 
         // Cleanup function to remove event listeners when component unmounts
@@ -138,8 +141,42 @@ export function CatchChecker({
         };
     }, [model]); // Re-run when the performance model changes
 
-    const left = useXRInputSourceState("controller", "left");
-    const right = useXRInputSourceState("controller", "right");
+    const leftController = useXRInputSourceState("controller", "left");
+    const leftHand = useXRInputSourceState("hand", "left");
+    const rightController = useXRInputSourceState("controller", "right");
+    const rightHand = useXRInputSourceState("hand", "right");
+
+    const getWorldPosition = (
+        side: "left" | "right",
+        frame: XRFrame | undefined
+    ): THREE.Vector3 | null => {
+        if (!frame) return null;
+        const position = new THREE.Vector3();
+
+        let hand = undefined;
+        let controller = undefined;
+        if (side === "right") {
+            hand = rightHand;
+            controller = rightController;
+        } else if (side === "left") {
+            hand = leftHand;
+            controller = leftController;
+        }
+
+        if (controller) {
+            controller?.object?.getWorldPosition(position);
+            return position;
+        }
+        if (hand) {
+            const source = hand.inputSource.hand;
+            const referenceSpace = gl.xr.getReferenceSpace();
+            if (source && frame && frame.getJointPose) {
+                return getHandPosition(source, frame, referenceSpace);
+            }
+        }
+
+        return null;
+    };
 
     /**
      * Vibrate Controller Function
@@ -175,13 +212,11 @@ export function CatchChecker({
      * This runs every frame to check for collisions between controllers and balls
      * that need to be caught according to the current events being monitored
      */
-    useFrame(() => {
+    useFrame((_, __, frame) => {
         // Get current world positions of both controllers
-        const rightPos = new THREE.Vector3();
-        right?.object?.getWorldPosition(rightPos);
+        const rightPos = getWorldPosition("right", frame);
 
-        const leftPos = new THREE.Vector3();
-        left?.object?.getWorldPosition(leftPos);
+        const leftPos = getWorldPosition("left", frame);
 
         // Array to track which events should be removed after processing
         const eventToRemove: number[] = [];
@@ -201,28 +236,26 @@ export function CatchChecker({
                 // Get the ball's current world position
                 const ballWorldPos = new THREE.Vector3();
                 ballObject.getWorldPosition(ballWorldPos);
-
                 if (event.hand.isRightHand()) {
                     // Check collision with right controller
-                    const distanceRight = rightPos.distanceTo(ballWorldPos);
+                    const distanceRight = rightPos?.distanceTo(ballWorldPos);
 
-                    if (distanceRight <= radius) {
+                    if (distanceRight && distanceRight <= radius) {
                         // Successful catch
                         ballObject.userData.isExplosing = true; // Mark ball for visual effect
                         hasCatchRight.current = true; // Set success flag
-                        vibrateController(right, 1, 50); // Provide haptic feedback
+                        vibrateController(rightController, 5, 20); // Provide haptic feedback
                         eventToRemove.push(i); // Mark event for removal
                         if (makeStop) clock.play();
                     }
                 } else {
                     // Check collision with left controller
-                    const distanceLeft = leftPos.distanceTo(ballWorldPos);
-
-                    if (distanceLeft <= radius) {
+                    const distanceLeft = leftPos?.distanceTo(ballWorldPos);
+                    if (distanceLeft && distanceLeft <= radius) {
                         // Successful catch
                         ballObject.userData.isExplosing = true; // Mark ball for visual effect
                         hasCatchLeft.current = true; // Set success flag
-                        vibrateController(left, 1, 50); // Provide haptic feedback
+                        vibrateController(leftController, 5, 20); // Provide haptic feedback
                         eventToRemove.push(i); // Mark event for removal
                         if (makeStop) clock.play();
                     }

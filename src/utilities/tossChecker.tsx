@@ -9,9 +9,17 @@ import {
 import { useFrame } from "@react-three/fiber";
 import { useXRInputSourceState, type XRControllerState } from "@react-three/xr";
 import * as THREE from "three";
-import { Clock, PerformanceModel, Alerts, AlertsTimeline } from "musicaljuggling";
+import {
+    Clock,
+    PerformanceModel,
+    Alerts,
+    AlertsTimeline,
+    TossCatchEvent,
+    ballVelocity
+} from "musicaljuggling";
 import { type AlertEvent } from "musicaljuggling";
 import { WayDetector } from "./wayDetector";
+import { velocity } from "three/tsl";
 
 /**
  * TossChecker Component
@@ -50,6 +58,11 @@ export function TossChecker({
         undefined
     );
 
+    const [velocityLeft, setVelocityLeft] = useState<THREE.Vector3 | null | undefined>(null);
+    const [velocityRight, setVelocityRight] = useState<THREE.Vector3 | null | undefined>(null);
+
+    const [ballPosLeft, setBallPosLeft] = useState<THREE.Vector3 | null | undefined>(null);
+    const [ballPosRight, setBallPosRight] = useState<THREE.Vector3 | null | undefined>(null);
     //Initialize alert system
     useEffect(() => {
         // Create a timeline that aggregates all ball timelines with a 0/0.2 second interval
@@ -74,11 +87,13 @@ export function TossChecker({
                     // Set up right hand toss detection
                     if (e.hand.isRightHand()) {
                         setIncomingSiteswapRight(e.siteswapHeight);
+                        setVelocityRight(e.ball.position(clock.getTime() + 0.2));
                     }
 
                     // Set up left hand toss detection
                     if (!e.hand.isRightHand()) {
                         setIncomingSiteswapLeft(e.siteswapHeight);
+                        setVelocityLeft(e.ball.position(clock.getTime() + 0.2));
                     }
                 }
             });
@@ -91,12 +106,26 @@ export function TossChecker({
              */
             alertes.addEventListener("instant", (e: AlertEvent) => {
                 if (e.actionDescription === "tossed") {
+                    const tossStartPos = e.ball.positionAtEvent(e);
+                    const tossEndPos = e.ball.positionAtEvent(e.nextBallEvent()[1]);
+                    const flightTime = e.unitTime * e.siteswapHeight;
+                    const velocity = ballVelocity(tossStartPos, 0, tossEndPos, flightTime, 0);
+                    const normalizedVelocity = velocity.normalize();
+
                     if (e.hand.isRightHand()) {
                         setIncomingSiteswapRight(e.siteswapHeight);
+                        setVelocityRight(normalizedVelocity);
+
+                        // BE CAREFUL : behavior can be unexpected because of absolute / relative position
+                        setBallPosRight(tossStartPos);
                     }
 
                     if (!e.hand.isRightHand()) {
                         setIncomingSiteswapLeft(e.siteswapHeight);
+                        setVelocityLeft(normalizedVelocity);
+
+                        // BE CAREFUL : behavior can be unexpected because of absolute / relative position
+                        setBallPosLeft(tossStartPos);
                     }
 
                     clock.pause();
@@ -110,9 +139,14 @@ export function TossChecker({
         };
     }, [model]);
 
-    const left = useXRInputSourceState("controller", "left");
-    const right = useXRInputSourceState("controller", "right");
+    //Set up all interactions method (hand and controller)
+    const leftController = useXRInputSourceState("controller", "left");
+    const leftHandState = useXRInputSourceState("hand", "left");
+    const rightController = useXRInputSourceState("controller", "right");
+    const rightHandState = useXRInputSourceState("hand", "right");
 
+    const leftHand = leftHandState ? leftHandState.inputSource.hand : undefined;
+    const rightHand = rightHandState ? rightHandState.inputSource.hand : undefined;
     /**
      * Vibrate Controller Function
      *
@@ -147,6 +181,8 @@ export function TossChecker({
      */
     const successLeft = () => {
         setIncomingSiteswapLeft(undefined);
+        setVelocityLeft(null);
+        setBallPosLeft(null);
         if (makeStop) clock.play();
     };
 
@@ -158,6 +194,8 @@ export function TossChecker({
      */
     const successRight = () => {
         setIncomingSiteswapRight(undefined);
+        setVelocityRight(null);
+        setBallPosRight(null);
         if (makeStop) clock.play();
     };
 
@@ -174,22 +212,28 @@ export function TossChecker({
     return (
         <>
             {/* Right Hand Motion Detection */}
-            {right && (
+            {(rightController || rightHand) && velocityRight && ballPosRight && (
                 <WayDetector
-                    controller={right}
+                    controller={rightController}
+                    hand={rightHand}
                     incomingSiteswap={incomingSiteswapRight}
                     onSuccess={successRight}
                     onError={error}
+                    velocity={velocityRight}
+                    pos={ballPosRight}
                 />
             )}
 
             {/* Left Hand Motion Detection */}
-            {left && (
+            {(leftController || leftHand) && velocityLeft && ballPosLeft && (
                 <WayDetector
-                    controller={left}
+                    controller={leftController}
+                    hand={leftHand}
                     incomingSiteswap={incomingSiteswapLeft}
                     onSuccess={successLeft}
                     onError={error}
+                    velocity={velocityLeft}
+                    pos={ballPosLeft}
                 />
             )}
         </>

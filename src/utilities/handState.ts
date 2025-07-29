@@ -7,7 +7,7 @@ import * as THREE from "three";
  * @param entry
  * @returns Vector3
  */
-function DOMPointReadOnlyToVector3(entry: DOMPointReadOnly) {
+export function DOMPointReadOnlyToVector3(entry: DOMPointReadOnly) {
     return new THREE.Vector3(entry.x, entry.y, entry.z);
 }
 
@@ -276,5 +276,57 @@ export class HandState extends EventDispatcher<HandActionEvents> {
         } else {
             this.wasCloseHand.left = false;
         }
+    }
+}
+
+export function getPosition(
+    hand: XRHand,
+    fingerName: XRHandJoint,
+    frame: XRFrame,
+    referenceSpace: XRReferenceSpace
+): THREE.Vector3 | null {
+    const finger = hand.get(fingerName);
+
+    if (!finger || !frame.getJointPose) return null;
+
+    const fingerPose = frame.getJointPose(finger, referenceSpace);
+
+    if (!fingerPose) return null;
+
+    const fingerPos = DOMPointReadOnlyToVector3(fingerPose.transform.position);
+
+    return fingerPos;
+}
+
+export function getHandPosition(
+    hand: XRHand,
+    frame: XRFrame | undefined,
+    referenceSpace: XRReferenceSpace
+): THREE.Vector3 | null {
+    const position = new THREE.Vector3();
+
+    if (hand && frame && frame.getJointPose) {
+        const middleFingerMetacarpal = getPosition(
+            hand,
+            "middle-finger-metacarpal",
+            frame,
+            referenceSpace
+        );
+        const middleFingerPhalancProximal = getPosition(
+            hand,
+            "middle-finger-phalanx-proximal",
+            frame,
+            referenceSpace
+        );
+
+        if (!middleFingerMetacarpal || !middleFingerPhalancProximal) return null;
+
+        position
+            .addVectors(middleFingerMetacarpal, middleFingerPhalancProximal)
+            .multiplyScalar(0.5);
+
+        return position;
+    } else {
+        return null;
     }
 }

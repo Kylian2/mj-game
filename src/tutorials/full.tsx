@@ -1,5 +1,5 @@
 // React and Three.js Fiber
-import { extend, useFrame, type ThreeElements } from "@react-three/fiber";
+import { extend, useFrame, useThree, type ThreeElements } from "@react-three/fiber";
 
 // React-XR
 import { useXRInputSourceState } from "@react-three/xr";
@@ -12,7 +12,6 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import * as THREE from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
-import type { Mesh } from "three";
 
 // Musical Juggling Library
 import {
@@ -22,19 +21,19 @@ import {
     BasicJuggler,
     DEFAULT_BALL_COLOR,
     DEFAULT_BALL_HEIGHT_SEGMENT,
-    DEFAULT_BALL_RADIUS,
     DEFAULT_BALL_WIDTH_SEGMENT,
     patternToModel,
     PerformanceView,
     type BasicJugglerProps,
-    type JugglingPatternRaw,
-    type BasicBallProps
+    type JugglingPatternRaw
 } from "musicaljuggling";
 import { Root, Text } from "@react-three/uikit";
 import { CatchChecker } from "../utilities/catchChecker";
 import { TossChecker } from "../utilities/tossChecker";
 import { FireworksSystem } from "../utilities/fireworks";
 import { DiscoSpotlight } from "../scenes/home";
+import { FollowTrajectory } from "../utilities/followTrajectory";
+import { HandState, type HandActionEvent } from "../utilities/handState";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -69,6 +68,9 @@ const pattern: JugglingPatternRaw = {
 };
 
 export function FullPratice({ change }: { change: Dispatch<SetStateAction<string>> }) {
+    const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
+    const referenceSpace = gl.xr.getReferenceSpace();
+
     // Model's definition
     const [model, setModel] = useState(() => patternToModel(pattern));
     const [ballsData] = useState([{ id: "Do?K", color: "purple" }]);
@@ -81,6 +83,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
     // Set playbackrate
     useEffect(() => {
         clock.current.setPlaybackRate(0.3);
+        clock.current.play();
     }, []);
 
     // Initialize a performance with the actual model and clock
@@ -144,8 +147,6 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
     // Function executed when a level is finished
     const nextLevel = async () => {
         const infos = levelsInformations.get(level.current); // retrieve current level informations
-        console.log("Passage de niveau (actuellement) = " + level.current);
-        console.log(infos);
         if (!infos) {
             console.warn("No information for level " + level.current);
             return;
@@ -180,15 +181,11 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
 
         // If there is remaining level, we move on the next
         if (level.current + 1 <= levelsInformations.size) {
-            console.log("Incrementation de level, avant = " + level.current);
             level.current++;
-            console.log("Incrementation de level, apres = " + level.current);
         } else {
             //Otherwise introduction is finished
             setText("Bravo ! Vous avez fini les tutoriels !");
             setHasFinished(true);
-            await wait(12000);
-            change("finished");
             return;
         }
 
@@ -208,7 +205,6 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
 
     useEffect(() => {
         const handleReachedEnd = () => {
-            console.log("reachedEnd");
             clock.current.setTime(0);
             clock.current.pause();
             nextLevel(); // nextLevel() is executed when clock reach end
@@ -221,8 +217,52 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
         };
     }, []);
 
+    /**
+     * Handle B button pressure (and B-like action -> hand pinch)
+     */
+    const handleB = () => {
+        Bcount.current = tickcount.current;
+        if (clock.current.isPaused()) {
+            (async () => {
+                await countdown();
+                clock.current.play();
+            })();
+        } else {
+            clock.current.pause();
+            setText("Pause");
+        }
+    };
+
+    // Variables to get hands access
+    const [handState, setHandState] = useState<HandState>();
+    const handSourceRight = useXRInputSourceState("hand", "right");
+    const rightHand = handSourceRight?.inputSource?.hand;
+
+    // Initialize hand action detector (to detect pinch, middle pinch and hand closure or opening)
+    // The section is executed when right hand has a change
+    useEffect(() => {
+        //We create a HandState in function of which hand is "connected"
+        if (rightHand) {
+            setHandState(new HandState({ rightHand: rightHand }));
+        }
+    }, [rightHand]);
+
+    useEffect(() => {
+        if (!handState) return;
+
+        // A simple pinch is like a B controller button
+        handState.addEventListener("pinch", (e: HandActionEvent) => {
+            if (Math.abs(Bcount.current - tickcount.current) > 200) handleB();
+        });
+
+        return () => {
+            handState?.removeAllEventListeners();
+        };
+    }, [handState]);
+
     //This section is executed on each frame
-    useFrame(() => {
+    useFrame((_, __, frame) => {
+        handState?.update(frame, referenceSpace);
         const time = performance.getClock().getTime();
 
         // This part update ball's position and curve
@@ -306,17 +346,8 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
 
         // Handle B button interaction
         const rightB = rightController?.gamepad?.["b-button"]?.button;
-        if (rightB && Math.abs(Bcount.current - tickcount.current) > 200 && !hasFinished) {
-            Bcount.current = tickcount.current;
-            if (clock.current.isPaused()) {
-                (async () => {
-                    await countdown();
-                    clock.current.play();
-                })();
-            } else {
-                clock.current.pause();
-                setText("Pause");
-            }
+        if (rightB && Math.abs(Bcount.current - tickcount.current) > 200) {
+            handleB();
         }
 
         tickcount.current++;
@@ -349,7 +380,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
             };
         }, [performance, radius, id]);
 
-        radius ??= DEFAULT_BALL_RADIUS;
+        radius ??= 0.05;
         widthSegments ??= DEFAULT_BALL_WIDTH_SEGMENT;
         heightSegments ??= DEFAULT_BALL_HEIGHT_SEGMENT;
         color ??= DEFAULT_BALL_COLOR;
@@ -374,7 +405,7 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                         <meshBasicMaterial color={color} />
                     </mesh>
                     <points>
-                        <sphereGeometry args={[radius - 0.05, 16, 16]} />
+                        <sphereGeometry args={[radius - 0.045, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>
@@ -449,13 +480,17 @@ export function FullPratice({ change }: { change: Dispatch<SetStateAction<string
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
             <TextComponent text={text}></TextComponent>
+
+            {/* Declare FollowTrajectory first */}
+            <FollowTrajectory model={model} clock={clock.current} />
+
             <CatchChecker
                 model={model}
                 clock={clock.current}
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
-                makeStop={true}
+                makeStop={false}
             />
             <TossChecker
                 model={model}

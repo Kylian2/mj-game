@@ -323,7 +323,7 @@ export function ThreeBallPerformance({ training = false }: { training?: boolean 
             };
         }, [performance, radius, id]);
 
-        radius ??= DEFAULT_BALL_RADIUS;
+        radius ??= 0.05;
         widthSegments ??= DEFAULT_BALL_WIDTH_SEGMENT;
         heightSegments ??= DEFAULT_BALL_HEIGHT_SEGMENT;
         color ??= DEFAULT_BALL_COLOR;
@@ -348,7 +348,7 @@ export function ThreeBallPerformance({ training = false }: { training?: boolean 
                         <meshBasicMaterial color={color} />
                     </mesh>
                     <points>
-                        <sphereGeometry args={[radius - 0.05, 16, 16]} />
+                        <sphereGeometry args={[radius - 0.045, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>
@@ -420,7 +420,7 @@ export function ThreeBallPerformance({ training = false }: { training?: boolean 
                 position={[1, 0, 0]}
             >
                 {jugglersData.map((elem) => mapJuggler(elem as BasicJugglerProps))}
-                {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
+                {ballsData.map((elem) => mapBalls(elem))}
             </Performance>
             <TextComponent text={text}></TextComponent>
             <CatchChecker

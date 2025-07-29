@@ -1,5 +1,5 @@
 // React and Three.js Fiber
-import { extend, useFrame, type ThreeElements } from "@react-three/fiber";
+import { extend, useFrame, useThree, type ThreeElements } from "@react-three/fiber";
 
 // React-XR
 import { useXRInputSourceState } from "@react-three/xr";
@@ -12,7 +12,6 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import * as THREE from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
-import type { Mesh } from "three";
 
 // Musical Juggling Library
 import {
@@ -22,7 +21,6 @@ import {
     BasicJuggler,
     DEFAULT_BALL_COLOR,
     DEFAULT_BALL_HEIGHT_SEGMENT,
-    DEFAULT_BALL_RADIUS,
     DEFAULT_BALL_WIDTH_SEGMENT,
     patternToModel,
     PerformanceView,
@@ -31,6 +29,8 @@ import {
 } from "musicaljuggling";
 import { Root, Text } from "@react-three/uikit";
 import { TossChecker } from "../../utilities/tossChecker";
+import { HandState } from "../../utilities/handState";
+import { FollowTrajectory } from "../../utilities/followTrajectory";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -65,6 +65,9 @@ const pattern: JugglingPatternRaw = {
 };
 
 export function TossPractice({ change }: { change: Dispatch<SetStateAction<string>> }) {
+    const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
+    const referenceSpace = gl.xr.getReferenceSpace();
+
     // Model's definition
     const [model, setModel] = useState(() => patternToModel(pattern));
     const [ballsData] = useState([{ id: "Do?K", color: "red" }]);
@@ -84,6 +87,8 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
     const [performance, setPerformance] = useState(
         () => new PerformanceView({ model: model, clock: clock.current })
     );
+
+    const [resetSignal, setResetSignal] = useState(0);
 
     // Data structure where the balls, curves and jugglers will be stored.
     // When data is store we can access it by doing `ballsRef.current.get(ballid)`.
@@ -181,9 +186,8 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
 
         // If there is remaining level, we move on the next
         if (level.current + 1 <= levelsInformations.size) {
-            console.log("Incrementation de level, avant = " + level.current);
             level.current++;
-            console.log("Incrementation de level, apres = " + level.current);
+            setResetSignal(resetSignal + 1);
         } else {
             //Otherwise we move on the full practice
             setText("Bravo ! On peut maintenant mixer lancers et rattrapes !");
@@ -221,8 +225,53 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
         };
     }, []);
 
+    /**
+     * Handle B button pressure (and B-like action -> hand pinch)
+     */
+    const handleB = () => {
+        Bcount.current = tickcount.current;
+        if (clock.current.isPaused()) {
+            (async () => {
+                await countdown();
+                clock.current.play();
+            })();
+        } else {
+            clock.current.pause();
+            setText("Pause");
+        }
+    };
+
+    // Variables to get hands access
+    const [handState, setHandState] = useState<HandState>();
+    const handSourceRight = useXRInputSourceState("hand", "right");
+    const rightHand = handSourceRight?.inputSource?.hand;
+
+    // Initialize hand action detector (to detect pinch, middle pinch and hand closure or opening)
+    // The section is executed when right hand has a change
+    useEffect(() => {
+        //We create a HandState in function of which hand is "connected"
+        if (rightHand) {
+            setHandState(new HandState({ rightHand: rightHand }));
+        }
+    }, [rightHand]);
+
+    useEffect(() => {
+        if (!handState) return;
+
+        // A simple pinch is like a B controller button
+        handState.addEventListener("pinch", (e: HandActionEvent) => {
+            if (Math.abs(Bcount.current - tickcount.current) > 200) handleB();
+        });
+
+        return () => {
+            handState?.removeAllEventListeners();
+        };
+    }, [handState]);
+
     //This section is executed on each frame
-    useFrame(() => {
+    useFrame((_, __, frame) => {
+        handState?.update(frame, referenceSpace);
+
         const time = performance.getClock().getTime();
 
         // This part update ball's position and curve
@@ -306,16 +355,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
         // Handle B button interaction
         const rightB = rightController?.gamepad?.["b-button"]?.button;
         if (rightB && Math.abs(Bcount.current - tickcount.current) > 200) {
-            Bcount.current = tickcount.current;
-            if (clock.current.isPaused()) {
-                (async () => {
-                    await countdown();
-                    clock.current.play();
-                })();
-            } else {
-                clock.current.pause();
-                setText("Pause");
-            }
+            handleB();
         }
 
         tickcount.current++;
@@ -348,7 +388,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
             };
         }, [performance, radius, id]);
 
-        radius ??= DEFAULT_BALL_RADIUS;
+        radius ??= 0.05;
         widthSegments ??= DEFAULT_BALL_WIDTH_SEGMENT;
         heightSegments ??= DEFAULT_BALL_HEIGHT_SEGMENT;
         color ??= DEFAULT_BALL_COLOR;
@@ -373,7 +413,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
                         <meshBasicMaterial color={color} />
                     </mesh>
                     <points>
-                        <sphereGeometry args={[radius - 0.05, 16, 16]} />
+                        <sphereGeometry args={[radius - 0.045, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>
@@ -448,6 +488,10 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
             <TextComponent text={text}></TextComponent>
+
+            {/* Declare FollowTrajectory first */}
+            <FollowTrajectory model={model} clock={clock.current} reset={resetSignal} />
+
             <TossChecker
                 model={model}
                 clock={clock.current}
