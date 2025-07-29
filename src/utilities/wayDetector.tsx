@@ -99,7 +99,6 @@ function Arrow({
 
             // Calculate distance between controller and hitbox
             const distance = hitboxPosition.distanceTo(handPosition);
-            console.log(distance);
             // Track collision state changes
             const wasColliding = isColliding;
             const nowColliding = distance < collisionThreshold;

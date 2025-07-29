@@ -102,7 +102,7 @@ export function CatchIntroduction({ change }: { change: Dispatch<SetStateAction<
     // Store tutorial's texts, and it's progression.
     const currentProgression = useRef(0);
     const texts = [
-        "Pour rattraper une balle, il faut placer sa main de façon a entrer en collision avec elle",
+        "Pour rattraper une balle, il faut placer sa main de facon a entrer en collision avec elle",
         "Vous pouvez vous aider de la previsualisation de la trajectoire de la balle pour anticiper les rattrapers",
         "Si vous reussissez a attraper la balle, vous verrez des particules autour de la balle",
         "Appuyez sur B pour passer a la pratique"

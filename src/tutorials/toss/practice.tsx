@@ -32,6 +32,7 @@ import {
 import { Root, Text } from "@react-three/uikit";
 import { TossChecker } from "../../utilities/tossChecker";
 import { HandState } from "../../utilities/handState";
+import { FollowTrajectory } from "../../utilities/followTrajectory";
 
 extend({ LineMaterial, LineGeometry });
 
@@ -488,6 +489,10 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
                 {ballsData.map((elem) => mapBalls(elem as BallReactProps))}
             </Performance>
             <TextComponent text={text}></TextComponent>
+
+            {/* Declare FollowTrajectory first */}
+            <FollowTrajectory model={model} clock={clock.current} />
+
             <TossChecker
                 model={model}
                 clock={clock.current}
