@@ -127,7 +127,7 @@ export function FollowTrajectory({
 function arePositionsClose(
     pos1: THREE.Vector3,
     pos2: THREE.Vector3,
-    threshold: number = 0.1
+    threshold: number = 0.05
 ): boolean {
     const deltaX = pos1.x - pos2.x;
     const deltaY = pos1.y - pos2.y;
