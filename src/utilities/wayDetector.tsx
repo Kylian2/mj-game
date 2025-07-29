@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useMemo, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import type { useXRInputSourceState, XRControllerState } from "@react-three/xr";
-import { getHandPosition, getPosition } from "./handState";
+import type { XRControllerState } from "@react-three/xr";
+import { getHandPosition } from "./handState";
 
 /**
  * Arrow Component

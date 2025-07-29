@@ -348,7 +348,7 @@ export function ThreeBallPerformance({ training = false }: { training?: boolean 
                         <meshBasicMaterial color={color} />
                     </mesh>
                     <points>
-                        <sphereGeometry args={[radius - 0.05, 16, 16]} />
+                        <sphereGeometry args={[radius - 0.045, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>

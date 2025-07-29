@@ -4,9 +4,8 @@ import { useXRInputSourceState, type XRControllerState } from "@react-three/xr";
 import * as THREE from "three";
 import { Clock, PerformanceModel, Alerts, AlertsTimeline } from "musicaljuggling";
 import { type AlertEvent } from "musicaljuggling";
-import { Box } from "@react-three/drei";
 import { type CallbackFunction } from "musicaljuggling";
-import { getHandPosition, getPosition } from "./handState";
+import { getHandPosition } from "./handState";
 
 /**
  * CatchChecker Component

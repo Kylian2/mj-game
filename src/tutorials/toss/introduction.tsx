@@ -12,23 +12,19 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import * as THREE from "three";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
-import type { Mesh } from "three";
 
 // Musical Juggling Library
 import {
-    Performance,
     Clock,
     BallView,
     BasicJuggler,
     DEFAULT_BALL_COLOR,
     DEFAULT_BALL_HEIGHT_SEGMENT,
-    DEFAULT_BALL_RADIUS,
     DEFAULT_BALL_WIDTH_SEGMENT,
     patternToModel,
     PerformanceView,
     type BasicJugglerProps,
-    type JugglingPatternRaw,
-    type BasicBallProps
+    type JugglingPatternRaw
 } from "musicaljuggling";
 import { Root, Text } from "@react-three/uikit";
 import { HandState, type HandActionEvent } from "../../utilities/handState";
@@ -106,8 +102,7 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
     // Store tutorial's texts, and it's progression.
     const currentProgression = useRef(0);
     const texts = [
-        "Au moment de lancer une balle, appuyez sur X (manette gauche), et A (manette droite)",
-        "Des fleches apparaitront et se coloreront en fonction du lancer",
+        "Au moment de lancer une balle, des fleches apparaitront en fonction du lancer",
         "Suivez-les pour valider le lancer",
         "Appuyez sur B pour passer a la pratique"
     ];
@@ -358,7 +353,7 @@ export function TossIntroduction({ change }: { change: Dispatch<SetStateAction<s
                         <meshBasicMaterial color={color} />
                     </mesh>
                     <points>
-                        <sphereGeometry args={[radius - 0.05, 16, 16]} />
+                        <sphereGeometry args={[radius - 0.045, 16, 16]} />
                         <pointsMaterial size={0.03} transparent={true} color={"yellow"} />
                     </points>
                 </object3D>

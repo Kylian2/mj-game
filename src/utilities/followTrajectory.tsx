@@ -21,9 +21,20 @@ import { useXRInputSourceState } from "@react-three/xr";
  *
  * @param model - The performance model
  * @param clock - The clock
+ * @param reset - Increment to send a reset signal
  * @returns
  */
-export function FollowTrajectory({ model, clock }: { model: PerformanceModel; clock: Clock }) {
+export function FollowTrajectory({
+    model,
+    clock,
+    reset = 0,
+    active = true
+}: {
+    model: PerformanceModel;
+    clock: Clock;
+    reset?: number;
+    active?: boolean;
+}) {
     // List containing balls in the left and right hand
     const ballToFollowLeft = useRef<BallModel[]>([]);
     const ballToFollowRight = useRef<BallModel[]>([]);
@@ -39,7 +50,7 @@ export function FollowTrajectory({ model, clock }: { model: PerformanceModel; cl
         // We want to be warn on each event
         alerts.addEventListener("instant", (e: AlertEvent) => {
             // If a ball is caught then we add it to our hands
-            if (e.actionDescription === "caught") {
+            if (e.actionDescription === "caught" && active) {
                 if (e.hand.isRightHand()) {
                     ballToFollowRight.current.push(e.ball);
                 }
@@ -49,7 +60,7 @@ export function FollowTrajectory({ model, clock }: { model: PerformanceModel; cl
             }
 
             //If a ball is tossed we remove it from the hand
-            if (e.actionDescription === "tossed") {
+            if (e.actionDescription === "tossed" && active) {
                 const indexRight = ballToFollowRight.current.indexOf(e.ball);
                 const indexLeft = ballToFollowLeft.current.indexOf(e.ball);
                 if (indexRight > -1) {
@@ -61,26 +72,23 @@ export function FollowTrajectory({ model, clock }: { model: PerformanceModel; cl
             }
         });
 
-        // Empty both hand
-        const clearList = () => {
-            ballToFollowLeft.current = [];
-            ballToFollowRight.current = [];
-        };
-
-        // When figure is finished we clear hands
-        clock.addEventListener("reachedEnd", clearList);
-
         return () => {
             alerts.removeAllEventListeners();
-            clock.removeEventListener("reachedEnd", clearList);
         };
     }, [model, clock]);
+
+    useEffect(() => {
+        // Empty both hand
+        ballToFollowLeft.current = [];
+        ballToFollowRight.current = [];
+    }, [reset]);
 
     const leftController = useXRInputSourceState("controller", "left");
     const rightController = useXRInputSourceState("controller", "right");
 
     //At each frame we check if controllers are closed of the perfect trajectory
     useFrame(() => {
+        if (!active) return;
         // For each ball we have in hand
         ballToFollowRight.current.forEach((ball) => {
             let position: THREE.Vector3 = new THREE.Vector3();
