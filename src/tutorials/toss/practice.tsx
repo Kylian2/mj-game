@@ -88,6 +88,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
         () => new PerformanceView({ model: model, clock: clock.current })
     );
 
+    //State to send a reset signal to FollowTrajectory component
     const [resetSignal, setResetSignal] = useState(0);
 
     // Data structure where the balls, curves and jugglers will be stored.
@@ -187,7 +188,6 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
         // If there is remaining level, we move on the next
         if (level.current + 1 <= levelsInformations.size) {
             level.current++;
-            setResetSignal(resetSignal + 1);
         } else {
             //Otherwise we move on the full practice
             setText("Bravo ! On peut maintenant mixer lancers et rattrapes !");
@@ -212,7 +212,7 @@ export function TossPractice({ change }: { change: Dispatch<SetStateAction<strin
 
     useEffect(() => {
         const handleReachedEnd = () => {
-            console.log("reachedEnd");
+            setResetSignal(resetSignal + 1);
             clock.current.setTime(0);
             clock.current.pause();
             nextLevel(); // nextLevel() is executed when clock reach end
