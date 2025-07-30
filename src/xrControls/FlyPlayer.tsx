@@ -74,7 +74,7 @@ export function FlyPlayer({
             } else if (!buttonA) {
                 return;
             }
-        } else if (joystick && thumbstickState && Math.abs(thumbstickState.yAxis ?? 0) > 0.95) {
+        } else if (joystick && thumbstickState && Math.abs(thumbstickState.yAxis ?? 0) > 0.1) {
             speed = -speed * (thumbstickState.yAxis ?? 0);
         } else {
             return;

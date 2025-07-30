@@ -8,3 +8,7 @@ body, html {
   padding: 0;
   overflow: hidden;
 }
+
+button{
+  height: 100px;
+}

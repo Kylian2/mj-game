@@ -29,7 +29,8 @@ function Arrow({
     controller,
     hand,
     onCollision,
-    siteswap
+    siteswap,
+    visible = false
 }: {
     origin: THREE.Vector3;
     target: THREE.Vector3;
@@ -40,6 +41,7 @@ function Arrow({
     hand?: XRHand;
     onCollision?: (distance: number) => void;
     siteswap?: number;
+    visible: boolean;
 }) {
     const { gl } = useThree() as { gl: THREE.WebGLRenderer & { xr: any } };
 
@@ -116,7 +118,7 @@ function Arrow({
     });
 
     return (
-        <group position={origin} rotation={rotation}>
+        <group position={origin} rotation={rotation} visible={visible}>
             <mesh position={[0, bodyLength / 2, 0]}>
                 <cylinderGeometry args={[bodyRadius, bodyRadius, bodyLength, 8]} />
                 <meshBasicMaterial color={color} />
@@ -159,7 +161,8 @@ export function WayDetector({
     onSuccess,
     onError,
     velocity,
-    pos
+    pos,
+    arrowVisible = false
 }: {
     controller: XRControllerState | undefined;
     hand: XRHand | undefined;
@@ -168,6 +171,7 @@ export function WayDetector({
     onError: Function;
     velocity: THREE.Vector3;
     pos: THREE.Vector3;
+    arrowVisible: boolean;
 }) {
     /**
      * Collision Handler
@@ -202,6 +206,7 @@ export function WayDetector({
                     detectionIncoming={incomingSiteswap}
                     siteswap={incomingSiteswap}
                     onCollision={handleCollision}
+                    visible={arrowVisible}
                 />
             </group>
         </>
