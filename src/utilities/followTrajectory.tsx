@@ -98,7 +98,7 @@ export function FollowTrajectory({
             }
             // If controller position is closed of perfect ball trajectory then it vibrate
             if (arePositionsClose(position, ball.position(clock.getTime()))) {
-                vibrateController(rightController, 0.1, 30);
+                vibrateController(rightController, 0.05, 20);
             }
         });
 
@@ -109,7 +109,7 @@ export function FollowTrajectory({
                 leftController?.object?.getWorldPosition(position);
             }
             if (arePositionsClose(position, ball.position(clock.getTime()))) {
-                vibrateController(leftController, 0.1, 30);
+                vibrateController(leftController, 0.05, 20);
             }
         });
     });

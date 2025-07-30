@@ -244,7 +244,7 @@ export function CatchChecker({
                         // Successful catch
                         ballObject.userData.isExplosing = true; // Mark ball for visual effect
                         hasCatchRight.current = true; // Set success flag
-                        vibrateController(rightController, 5, 20); // Provide haptic feedback
+                        vibrateController(rightController, 1, 20); // Provide haptic feedback
                         eventToRemove.push(i); // Mark event for removal
                         if (makeStop) clock.play();
                     }
@@ -255,7 +255,7 @@ export function CatchChecker({
                         // Successful catch
                         ballObject.userData.isExplosing = true; // Mark ball for visual effect
                         hasCatchLeft.current = true; // Set success flag
-                        vibrateController(leftController, 5, 20); // Provide haptic feedback
+                        vibrateController(leftController, 1, 20); // Provide haptic feedback
                         eventToRemove.push(i); // Mark event for removal
                         if (makeStop) clock.play();
                     }
