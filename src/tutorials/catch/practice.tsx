@@ -187,7 +187,6 @@ export function CatchPractice({ change }: { change: Dispatch<SetStateAction<stri
         // If there is remaining level, we move on the next
         if (level.current + 1 <= 2) {
             level.current++;
-            setResetSignal(resetSignal + 1);
         } else {
             //Otherwise we move on the toss introduction
             setText("Apprenons a lancer les balles maintenant");
@@ -212,6 +211,7 @@ export function CatchPractice({ change }: { change: Dispatch<SetStateAction<stri
 
     useEffect(() => {
         const handleReachedEnd = () => {
+            setResetSignal(resetSignal + 1);
             clock.current.setTime(0);
             clock.current.pause();
             nextLevel(); // nextLevel() is executed when clock reach end
