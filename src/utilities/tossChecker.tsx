@@ -32,6 +32,7 @@ import { velocity } from "three/tsl";
  * @param errorCount - Optional reference to track the number of failed tosses
  * @param setErrorText - Optional function to display error messages to the user
  * @param makeStop - Optionnal, if true then figure will stop at toss moments
+ * @param arrowsVisible - Optionnale, indicate if arrows must be visible or not
  */
 export function TossChecker({
     clock,
@@ -39,7 +40,8 @@ export function TossChecker({
     model,
     errorCount,
     setErrorText,
-    makeStop
+    makeStop,
+    arrowsVisible = true
 }: {
     clock: Clock;
     ballsRef: RefObject<Map<string, THREE.Object3D<THREE.Object3DEventMap>>>;
@@ -47,6 +49,7 @@ export function TossChecker({
     errorCount?: RefObject<number>;
     setErrorText?: Dispatch<SetStateAction<string>>;
     makeStop?: boolean;
+    arrowsVisible?: boolean;
 }) {
     // State to track the expected siteswap height for the left hand's next toss
     // undefined means no toss is currently expected for this hand
@@ -84,16 +87,23 @@ export function TossChecker({
              */
             alertes.addEventListener("inf", (e: AlertEvent) => {
                 if (e.actionDescription === "tossed") {
+                    const tossStartPos = e.ball.positionAtEvent(e);
+                    const tossEndPos = e.ball.positionAtEvent(e.nextBallEvent()[1]);
+                    const flightTime = e.unitTime * e.siteswapHeight;
+                    const velocity = ballVelocity(tossStartPos, 0, tossEndPos, flightTime, 0);
+                    const normalizedVelocity = velocity.normalize();
                     // Set up right hand toss detection
                     if (e.hand.isRightHand()) {
                         setIncomingSiteswapRight(e.siteswapHeight);
-                        setVelocityRight(e.ball.position(clock.getTime() + 0.2));
+                        setVelocityRight(normalizedVelocity);
+                        setBallPosRight(tossStartPos);
                     }
 
                     // Set up left hand toss detection
                     if (!e.hand.isRightHand()) {
                         setIncomingSiteswapLeft(e.siteswapHeight);
-                        setVelocityLeft(e.ball.position(clock.getTime() + 0.2));
+                        setVelocityLeft(normalizedVelocity);
+                        setBallPosLeft(tossStartPos);
                     }
                 }
             });
@@ -137,7 +147,7 @@ export function TossChecker({
         return () => {
             alertes.removeAllEventListeners();
         };
-    }, [model]);
+    }, [model, makeStop]); // Update listeners when model or makestap changes
 
     //Set up all interactions method (hand and controller)
     const leftController = useXRInputSourceState("controller", "left");
@@ -221,6 +231,7 @@ export function TossChecker({
                     onError={error}
                     velocity={velocityRight}
                     pos={ballPosRight}
+                    arrowVisible={arrowsVisible}
                 />
             )}
 
@@ -234,6 +245,7 @@ export function TossChecker({
                     onError={error}
                     velocity={velocityLeft}
                     pos={ballPosLeft}
+                    arrowVisible={arrowsVisible}
                 />
             )}
         </>

@@ -81,7 +81,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 
 export default function App() {
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("tutorial");
+    const [scene, setScene] = useState<string>("two-balls-training");
 
     return (
         <div className="canvas-container">

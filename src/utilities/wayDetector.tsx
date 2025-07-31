@@ -153,6 +153,9 @@ function Arrow({
  * @param incomingSiteswap - Expected siteswap value from the performance model
  * @param onSuccess - Callback fired when correct toss motion is detected
  * @param onError - Callback fired when incorrect toss motion is detected
+ * @param velocity - Velocity to be displayed by the arrow
+ * @param pos - Position from where the arrow start
+ * @param arrowVisible - Indicate if arrow is visible or not
  */
 export function WayDetector({
     controller,
@@ -171,7 +174,7 @@ export function WayDetector({
     onError: Function;
     velocity: THREE.Vector3;
     pos: THREE.Vector3;
-    arrowVisible: boolean;
+    arrowVisible?: boolean;
 }) {
     /**
      * Collision Handler

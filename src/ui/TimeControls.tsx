@@ -1,9 +1,23 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* eslint-disable @eslint-react/web-api/no-leaked-event-listener */
-import { useEffect, useState, type JSX } from "react";
-import { Button, Slider, Toggle } from "@react-three/uikit-default";
-import { Play, Pause, Gauge, Snail, Rabbit, Infinity } from "@react-three/uikit-lucide";
+import {
+    useEffect,
+    useState,
+    type Dispatch,
+    type JSX,
+    type RefObject,
+    type SetStateAction
+} from "react";
+import {
+    Button,
+    Label,
+    RadioGroup,
+    RadioGroupItem,
+    Slider,
+    Toggle
+} from "@react-three/uikit-default";
+import { Play, Pause, Gauge, Snail, Rabbit, Infinity, Settings } from "@react-three/uikit-lucide";
 import { Clock } from "musicaljuggling";
 import { Root, Container, Text } from "@react-three/uikit";
 import { SimpleSlider } from "./SimpleSlider";
@@ -31,13 +45,34 @@ type TimeState = "playing" | "paused" | "reachedEnd";
  * @param props
  * @param props.timeConductor - The TimeConductor instance that manages time
  * @param props.backgroundColor - BackgroundColor of the ui
+ * @param props.catchPause a boolean indicating if simulator stops before catching
+ * @param props.tossPause a boolean indicating if simulator stops before tossing
+ * @param props.arrows a boolean indicating if simulator shows arrows
+ * @param props.setCatchPause a state dispatcher to update catchPause
+ * @param props.setTossPause a state dispatcher to update tossPause
+ * @param props.setArrows a state dispatcher to update arrows
  * @returns The 3D time controls interface
  */
 export function TimeControls({
     timeConductor,
     backgroundColor,
+    catchPause,
+    tossPause,
+    arrows,
+    setCatchPause,
+    setTossPause,
+    setArrows,
     ...props
-}: { timeConductor: Clock; backgroundColor?: string } & JSX.IntrinsicElements["group"]) {
+}: {
+    timeConductor: Clock;
+    backgroundColor?: string;
+    catchPause: boolean;
+    tossPause: boolean;
+    arrows: boolean;
+    setCatchPause: Dispatch<SetStateAction<boolean>>;
+    setTossPause: Dispatch<SetStateAction<boolean>>;
+    setArrows: Dispatch<SetStateAction<boolean>>;
+} & JSX.IntrinsicElements["group"]) {
     // The timeConductor is the single truth source here, so UI callbacks should
     // interact with timeConductor instead of setting their own state.
 
@@ -191,10 +226,55 @@ export function TimeControls({
         timeConductor.setLoop(value);
     }
 
+    const [settings, setSetting] = useState(false);
+
     return (
         <group {...props}>
-            <group position={[-3, 0, 0]}>
+            <group position={[settings ? -3.8 : -3.2, 0, 0]}>
                 <Root gap={32} alignItems={"center"}>
+                    <Container
+                        alignItems="center"
+                        gap={12}
+                        borderRadius={8}
+                        flexDirection={"column-reverse"}
+                        marginBottom={settings ? 100 : 0}
+                    >
+                        <Toggle
+                            borderColor={"black"}
+                            borderWidth={1.5}
+                            checked={settings}
+                            onCheckedChange={(checked) => setSetting(checked)}
+                        >
+                            <Settings width={16} height={16} />
+                        </Toggle>
+                        <Toggle
+                            borderColor={"white"}
+                            borderWidth={1.5}
+                            checked={tossPause}
+                            onCheckedChange={(checked) => setTossPause(checked)}
+                            display={settings ? "flex" : "none"}
+                        >
+                            <Text color={"white"}>Pause au lancer</Text>
+                        </Toggle>
+                        <Toggle
+                            borderColor={"white"}
+                            borderWidth={1.5}
+                            checked={catchPause}
+                            onCheckedChange={(checked) => setCatchPause(checked)}
+                            display={settings ? "flex" : "none"}
+                        >
+                            <Text color={"white"}>Pause au rattraper</Text>
+                        </Toggle>
+                        <Toggle
+                            borderColor={"white"}
+                            borderWidth={1.5}
+                            checked={arrows}
+                            onCheckedChange={(checked) => setArrows(checked)}
+                            display={settings ? "flex" : "none"}
+                        >
+                            <Text color={"white"}>Afficher les fleches</Text>
+                        </Toggle>
+                    </Container>
                     <Container alignItems="center" gap={12} borderRadius={8}>
                         <Toggle
                             borderColor={"black"}
