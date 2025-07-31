@@ -117,7 +117,7 @@ export function SimpleSlider({
     const handleBornePassing = useCallback(() => {
         const time = clock.getTime();
         if (time > supTime.current) {
-            clock.setTime(infTime.current);
+            clock.setTime(supTime.current);
             if (!clock.getLoop()) {
                 clock.pause();
             }
@@ -144,6 +144,9 @@ export function SimpleSlider({
     //Update sup time bound to reflect his new position
     useEffect(() => {
         supTime.current = positionToTime(supPositionRef.current);
+        if (clock.getTime() > supTime.current) {
+            clock.setTime(supTime.current);
+        }
     }, [supPositionRef.current]);
 
     //Update inf time bound to reflect his new position
