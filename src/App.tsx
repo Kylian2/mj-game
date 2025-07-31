@@ -63,8 +63,24 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
     useEffect(() => {
         if (lastScene.current !== scene && isInitialized.current) {
             if (initialReferenceSpace.current && gl.xr.isPresenting) {
+                const quaternion = new THREE.Quaternion();
+                quaternion.setFromEuler(
+                    scene === "home" ? new THREE.Euler(0, 0, 0) : new THREE.Euler(0, Math.PI / 2, 0)
+                );
+                const offsetTransform = new XRRigidTransform(
+                    {
+                        x: 0,
+                        y: -0.1,
+                        z: 0
+                    },
+                    quaternion
+                );
+
+                const synchronizedSpace =
+                    initialReferenceSpace.current.getOffsetReferenceSpace(offsetTransform);
+
                 try {
-                    gl.xr.setReferenceSpace(initialReferenceSpace.current);
+                    gl.xr.setReferenceSpace(synchronizedSpace);
                 } catch (e) {
                     console.warn("Error during reference space change", e);
                 }
