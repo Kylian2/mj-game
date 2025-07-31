@@ -139,7 +139,7 @@ export function CatchChecker({
         return () => {
             alertes.removeAllEventListeners();
         };
-    }, [model]); // Re-run when the performance model changes
+    }, [model, makeStop]); // Re-run when the performance model or makestop changes
 
     const leftController = useXRInputSourceState("controller", "left");
     const leftHand = useXRInputSourceState("hand", "left");

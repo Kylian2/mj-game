@@ -103,6 +103,10 @@ export function ThreeBallPerformance({ training = false }: { training?: boolean 
     //State to send a reset signal to FollowTrajectory component
     const [resetSignal, setResetSignal] = useState(0);
 
+    const [tossPause, setTossPause] = useState(true);
+    const [catchPause, setCatchPause] = useState(false);
+    const [arrows, setArrows] = useState(true);
+
     // Data structure where the balls, curves and jugglers will be stored.
     // When data is store we can access it by doing `ballsRef.current.get(ballid)`.
     const ballsRef = useRef(new Map<string, THREE.Object3D>());
@@ -486,7 +490,7 @@ export function ThreeBallPerformance({ training = false }: { training?: boolean 
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
-                makeStop={false}
+                makeStop={catchPause}
             />
             <TossChecker
                 model={model}
@@ -494,13 +498,20 @@ export function ThreeBallPerformance({ training = false }: { training?: boolean 
                 ballsRef={ballsRef}
                 errorCount={errorCount}
                 setErrorText={setText}
-                makeStop={true}
+                makeStop={tossPause}
+                arrowsVisible={arrows}
             />
             {training && (
                 <TimeControls
                     timeConductor={clock.current}
                     position={[3.5, 0.8, 0]}
                     rotation={[0, -Math.PI / 2, 0]}
+                    tossPause={tossPause}
+                    catchPause={catchPause}
+                    arrows={arrows}
+                    setCatchPause={setCatchPause}
+                    setTossPause={setTossPause}
+                    setArrows={setArrows}
                 ></TimeControls>
             )}
         </>
