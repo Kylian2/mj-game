@@ -33,7 +33,9 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
             const currentReferenceSpace = gl.xr.getReferenceSpace();
 
             const quaternion = new THREE.Quaternion();
-            quaternion.setFromEuler(new THREE.Euler(0, Math.PI / 2, 0));
+            quaternion.setFromEuler(
+                scene === "home" ? new THREE.Euler(0, 0, 0) : new THREE.Euler(0, Math.PI / 2, 0)
+            );
             const offsetTransform = new XRRigidTransform(
                 {
                     x: 0,
@@ -81,7 +83,7 @@ function XRSpaceManager({ scene, xrOrigin }: { scene: string; xrOrigin: React.Re
 
 export default function App() {
     const xrOrigin: any = useRef(null);
-    const [scene, setScene] = useState<string>("two-balls-training");
+    const [scene, setScene] = useState<string>("home");
 
     return (
         <div className="canvas-container">
